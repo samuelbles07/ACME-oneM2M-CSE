@@ -188,11 +188,29 @@ class ACP(AnnounceableResource):
 
 				# TODO support acod/specialization
 
+
 			# Check originator
-			if 'all' in acr['acor'] or originator in acr['acor'] or requestedPermission == Permission.NOTIFY:
-				return True
-			if any([ simpleMatch(originator, a) for a in acr['acor'] ]):	# check whether there is a wildcard match
-				return True
+			if 'all' in acr['acor'] or requestedPermission == Permission.NOTIFY:
+				return True		
+			for acr in acr['acor']:
+				# if acor is a groupId, check from resourceId prefix
+				if acr[:3] == "grp":
+					try:
+						if not (grp := CSE.dispatcher.retrieveResource(acr).resource):
+							L.isDebug and L.logDebug(f'Group resource not found: {acr}')
+							continue
+
+						if originator in grp.mid:
+							L.isDebug and L.logDebug(f'Originator found in group member')
+							return True
+					except Exception as e:
+						L.logErr(f'GRP resource not found for ACP check: {acr}')
+						continue # Not much that we can do here
+
+				# Check string match with pattern
+				if simpleMatch(originator, acr):
+					return True
+
 		return False
 
 

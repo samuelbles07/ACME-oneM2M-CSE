@@ -38,6 +38,7 @@ setup(
 		'requests', 
 		'rich', 
 		'tinydb',
+        'psycopg2-binary'
 		#'package1 @ git+https://github.com/CITGuru/PyInquirer.git@9d598a53fd17a9bc42efff33183cd2d141a5c949'
 	],
     entry_points={
