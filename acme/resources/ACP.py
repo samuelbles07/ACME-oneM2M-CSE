@@ -195,15 +195,17 @@ class ACP(AnnounceableResource):
 			for acr in acr['acor']:
 				# if acor is a groupId, check from resourceId prefix
 				if acr[:3] == "grp":
-					# L.isDebug and L.logDebug(f'Check group member from  {acr}')
-					if not (grp := CSE.dispatcher.retrieveResource(acr).resource):
-						L.isDebug and L.logDebug(f'ACP resource not found: {acr}')
-						continue
+					try:
+						if not (grp := CSE.dispatcher.retrieveResource(acr).resource):
+							L.isDebug and L.logDebug(f'Group resource not found: {acr}')
+							continue
 
-					# L.isDebug and L.logDebug(f'Group member: {grp.mid}')
-					if originator in grp.mid:
-						L.isDebug and L.logDebug(f'Originator found in group member')
-						return True
+						if originator in grp.mid:
+							L.isDebug and L.logDebug(f'Originator found in group member')
+							return True
+					except Exception as e:
+						L.logErr(f'GRP resource not found for ACP check: {acr}')
+						continue # Not much that we can do here
 
 				# Check string match with pattern
 				if simpleMatch(originator, acr):
