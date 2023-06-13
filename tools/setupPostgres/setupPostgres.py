@@ -44,13 +44,13 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS ACP
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     pv JSONB NOT NULL,
                     pvs JSONB NOT NULL,
                     adri JSONB,
                     apri JSONB,
                     airi JSONB,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
     
@@ -60,7 +60,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS AE
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     apn VARCHAR(255),
                     api VARCHAR(255) NOT NULL,
                     aei VARCHAR(255) NOT NULL,
@@ -76,7 +76,7 @@ class Tables:
                     csz JSONB,
                     scp JSONB,
                     srv JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
 
@@ -86,7 +86,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS CON
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     mni INTEGER NOT NULL,
                     mbi INTEGER NOT NULL,
                     mia INTEGER,
@@ -95,7 +95,7 @@ class Tables:
                     li VARCHAR(255),
                     ontologyRef VARCHAR(255),
                     disr BOOLEAN,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
 
@@ -105,13 +105,13 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS CIN
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     cnf VARCHAR(255),
                     cs INTEGER,
                     conr VARCHAR(255),
                     ontologyRef VARCHAR(255),
                     con VARCHAR(255) NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
     
@@ -121,7 +121,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS CSE
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     cst SMALLINT NOT NULL,
                     csi VARCHAR(255) NOT NULL,
                     poa JSONB NOT NULL,
@@ -129,7 +129,7 @@ class Tables:
                     ncp VARCHAR(255),
                     csz JSONB,
                     srv JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
 
@@ -139,7 +139,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS CSR
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     cst SMALLINT NOT NULL,
                     poa JSONB,
                     cb VARCHAR(255) NOT NULL,
@@ -156,7 +156,7 @@ class Tables:
                     tren BOOLEAN,
                     ape JSONB,
                     srv JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
 
@@ -166,7 +166,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS GRP
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     mt SMALLINT NOT NULL,
                     spty VARCHAR(255),
                     cnm INTEGER NOT NULL,
@@ -178,7 +178,7 @@ class Tables:
                     gn VARCHAR(255),
                     ssi BOOLEAN,
                     nar INTEGER,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """   
     
@@ -188,7 +188,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS SUB
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     enc JSONB,
                     exc INTEGER,
                     nu JSONB,
@@ -204,7 +204,7 @@ class Tables:
                     nec INTEGER,
                     su VARCHAR(255),
                     acrs VARCHAR(255),
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """   
     
@@ -214,7 +214,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS NOD
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     ni VARCHAR(255) NOT NULL,
                     hcl VARCHAR(255),
                     hael JSONB,
@@ -222,7 +222,7 @@ class Tables:
                     mgca VARCHAR(255),
                     rms VARCHAR(255),
                     nid VARCHAR(255),
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """   
 
@@ -232,7 +232,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS FWR
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     mgd INTEGER NOT NULL,
                     obis JSONB,
                     obps JSONB,
@@ -242,7 +242,7 @@ class Tables:
                     url VARCHAR(255) NOT NULL,
                     ud BOOLEAN NOT NULL,
                     uds JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
     
@@ -252,7 +252,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS DVI
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
+                    resource_index INTEGER,
                     mgd INTEGER NOT NULL,
                     obis JSONB,
                     obps JSONB,
@@ -275,7 +275,7 @@ class Tables:
                     spur VARCHAR(255),
                     purl VARCHAR(255),
                     ptl JSONB,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
 
@@ -285,8 +285,7 @@ class Tables:
                 CREATE TABLE IF NOT EXISTS REQ
                 (
                     index SERIAL PRIMARY KEY,
-                    ri VARCHAR(255) NOT NULL,
-                    
+                    resource_index INTEGER,
                     op SMALLINT NOT NULL,
                     tg VARCHAR(255) NOT NULL,
                     org VARCHAR(255) NOT NULL,
@@ -295,7 +294,7 @@ class Tables:
                     pc TEXT,
                     rs SMALLINT NOT NULL,
                     ors TEXT NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(ri) REFERENCES resources(ri)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
 
@@ -346,9 +345,6 @@ if __name__ == "__main__":
 
     cur.execute(Tables.queryREQ())
     conn.commit()
-
-
-    
 
     # Close cursor and connection to databse
     cur.close()
