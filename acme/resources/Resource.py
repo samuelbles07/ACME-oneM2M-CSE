@@ -891,6 +891,91 @@ class Resource(object):
 			self.dict = res.resource.dict
 		return res
 
+
+	def validateAttributeValue(self, attributeValue: Any) -> str:
+		""" Validate attribute value to follow SQL query format
+		TODO: Add this to Utils
+		Args:
+			attributeValue (Any): Value that will be validate
+
+		Returns:
+			str: SQL query format string value
+		"""
+		
+		# If attribute has no value, the return NULL in string
+		if attributeValue == None:
+			return "NULL"
+
+		# Do not at single quotes if attribute value is Int
+		if type(result) == int:
+			return result
+
+		# Add single quotes to attribute value
+		return f"'{result}'"
+
+	
+	def getInsertGeneralQuery(self) -> str:
+		""" Get SQL query of resource universal and common attributes
+
+			It is possible because all universal and common attributes for every resource in 1 database table
+
+		Returns:
+			str: Resources table insert query
+		"""
+
+		query = """
+				WITH resource_table AS (
+					INSERT INTO public.resources(
+						ty, ri, rn, pi, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, __rtype__, __originator__, __srn__, __announcedto__)
+						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+					RETURNING index
+				)
+			   """
+
+		return query.format(
+				self.validateAttributeValue(self.attribute("ty")),
+				self.validateAttributeValue(self.attribute("ri")),
+				self.validateAttributeValue(self.attribute("rn")),
+				self.validateAttributeValue(self.attribute("pi")),
+				self.validateAttributeValue(self.attribute("lt")),
+				self.validateAttributeValue(self.attribute("acpi")),
+				self.validateAttributeValue(self.attribute("et")),
+				self.validateAttributeValue(self.attribute("st")),
+				self.validateAttributeValue(self.attribute("at")),
+				self.validateAttributeValue(self.attribute("aa")),
+				self.validateAttributeValue(self.attribute("lbl")),
+				self.validateAttributeValue(self.attribute("esi")),
+				self.validateAttributeValue(self.attribute("daci")),
+				self.validateAttributeValue(self.attribute("cr")),
+				self.validateAttributeValue(self[self._rtype]),
+				self.validateAttributeValue(self[self._originator]),
+				self.validateAttributeValue(self[self._srn]),
+				self.validateAttributeValue(self[self._announcedTo])
+				# TODO: Add another internal attributes
+			)
+
+
+	def getInsertQuery(self) -> Optional[str]:
+		"""Get insert SQL query for specific resource type. If Resource base class method is called, then resource not supported yet
+
+		   Supported resource will implemented this function
+
+		Returns:
+			Optional[str]: SQL insert command query for respective resource type
+		"""
+		return None
+
+
+	def getUpdateQuery(self) -> Optional[str]:
+		"""Get update SQL query for specific resource type. If Resource base class method is called, then resource not supported yet
+
+		   Supported resource will implemented this function
+		   
+		Returns:
+			Optional[str]: SQL update command query for respective resource type
+		"""
+		return None
+
 	#########################################################################
 	#
 	#	Misc utilities
