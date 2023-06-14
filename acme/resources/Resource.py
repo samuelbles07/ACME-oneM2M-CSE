@@ -926,10 +926,10 @@ class Resource(object):
 		query = """
 				WITH resource_table AS (
 					INSERT INTO public.resources(
-						ty, ri, rn, pi, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, __rtype__, __originator__, __srn__, __announcedto__)
-						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+						ty, ri, rn, pi, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, __rtype__, __originator__, __srn__, __announcedto__, __rvi__)
+						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 					RETURNING index
-				)
+				) 
 			   """
 
 		return query.format(
@@ -950,8 +950,8 @@ class Resource(object):
 				self.validateAttributeValue(self[self._rtype]),
 				self.validateAttributeValue(self[self._originator]),
 				self.validateAttributeValue(self[self._srn]),
-				self.validateAttributeValue(self[self._announcedTo])
-				# TODO: Add another internal attributes
+				self.validateAttributeValue(self[self._announcedTo]),
+				self.validateAttributeValue(self[self._rvi])
 			)
 
 

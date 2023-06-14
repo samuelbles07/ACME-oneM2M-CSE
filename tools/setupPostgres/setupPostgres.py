@@ -27,14 +27,15 @@ class Tables:
                     st INTEGER,
                     at JSONB,
                     aa JSONB,
-                    lbl VARCHAR,
+                    lbl JSONB,
                     esi VARCHAR(255),
                     daci JSONB,
                     cr VARCHAR(255),
                     __rtype__ VARCHAR NOT NULL,
                     __originator__ VARCHAR NOT NULL,
                     __srn__ VARCHAR,
-                    __announcedTo__ JSONB
+                    __announcedTo__ JSONB,
+                    __rvi__ VARCHAR(255)
                 );
                 """
 
