@@ -82,9 +82,9 @@ class Tables:
                 """
 
     @staticmethod
-    def queryCON() -> str:
+    def queryCNT() -> str:
         return """
-                CREATE TABLE IF NOT EXISTS CON
+                CREATE TABLE IF NOT EXISTS CNT
                 (
                     index SERIAL PRIMARY KEY,
                     resource_index INTEGER,
@@ -317,7 +317,7 @@ if __name__ == "__main__":
     cur.execute(Tables.queryAE())
     conn.commit()
 
-    cur.execute(Tables.queryCON())
+    cur.execute(Tables.queryCNT())
     conn.commit()
     
     cur.execute(Tables.queryCIN())
