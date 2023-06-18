@@ -19,7 +19,7 @@ class Tables:
                     ty INTEGER NOT NULL,
                     ri VARCHAR(255) UNIQUE NOT NULL,
                     rn VARCHAR(255) UNIQUE NOT NULL,
-                    pi VARCHAR(255) NOT NULL,
+                    pi VARCHAR(255),
                     ct TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     lt TIMESTAMP NOT NULL,
                     acpi VARCHAR(255),
@@ -64,7 +64,7 @@ class Tables:
                     resource_index INTEGER,
                     apn VARCHAR(255),
                     api VARCHAR(255) NOT NULL,
-                    aei VARCHAR(255) NOT NULL,
+                    aei VARCHAR(255) UNIQUE NOT NULL,
                     mei VARCHAR(255),
                     tri VARCHAR(255),
                     trn VARCHAR(255),
@@ -117,14 +117,14 @@ class Tables:
                 """
     
     @staticmethod
-    def queryCSE() -> str:
+    def queryCB() -> str:
         return """
-                CREATE TABLE IF NOT EXISTS CSE
+                CREATE TABLE IF NOT EXISTS CB
                 (
                     index SERIAL PRIMARY KEY,
                     resource_index INTEGER,
                     cst SMALLINT NOT NULL,
-                    csi VARCHAR(255) NOT NULL,
+                    csi VARCHAR(255) UNIQUE NOT NULL,
                     poa JSONB NOT NULL,
                     nl VARCHAR(255),
                     ncp VARCHAR(255),
@@ -144,7 +144,7 @@ class Tables:
                     cst SMALLINT NOT NULL,
                     poa JSONB,
                     cb VARCHAR(255) NOT NULL,
-                    csi VARCHAR(255) NOT NULL,
+                    csi VARCHAR(255) UNIQUE NOT NULL,
                     mei VARCHAR(255) NOT NULL,
                     tri VARCHAR(255),
                     rr BOOLEAN NOT NULL,
@@ -323,7 +323,7 @@ if __name__ == "__main__":
     cur.execute(Tables.queryCIN())
     conn.commit()
 
-    cur.execute(Tables.queryCSE())
+    cur.execute(Tables.queryCB())
     conn.commit()
 
     cur.execute(Tables.queryCSR())
@@ -346,6 +346,15 @@ if __name__ == "__main__":
 
     cur.execute(Tables.queryREQ())
     conn.commit()
+
+    # cur.execute("SELECT row_to_json(resources) FROM resources WHERE ty = 1;")
+    # rows = cur.fetchall()
+    # result = []
+    # for row in rows:
+    #     result.append(row[0])
+
+    # print(result[0])
+    # print(result[1])
 
     # Close cursor and connection to databse
     cur.close()
