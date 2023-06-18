@@ -198,6 +198,7 @@ class ACP(AnnounceableResource):
 					try:
 						if not (grp := CSE.dispatcher.retrieveResource(acr).resource):
 							L.isDebug and L.logDebug(f'Group resource not found: {acr}')
+							# TODO: If not found, delete groupId from acp acor
 							continue
 
 						if originator in grp.mid:
@@ -235,3 +236,19 @@ class ACP(AnnounceableResource):
 				return True
 		return False
 
+
+	#	Databases Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.acp(resource_index, pv, pvs, adri, apri, airi)
+					SELECT rt.index, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['pv']),
+			self.validateAttributeValue(self['pvs']),
+			self.validateAttributeValue(self['adri']),
+			self.validateAttributeValue(self['apri']),
+			self.validateAttributeValue(self['airi'])
+		)

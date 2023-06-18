@@ -914,7 +914,7 @@ class Resource(object):
 		return f"'{result}'"
 
 	
-	def getInsertGeneralQuery(self) -> str:
+	def _getInsertGeneralQuery(self) -> str:
 		""" Get SQL query of resource universal and common attributes
 
 			It is possible because all universal and common attributes for every resource in 1 database table
