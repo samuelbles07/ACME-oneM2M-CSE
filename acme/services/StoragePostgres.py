@@ -19,10 +19,7 @@ class PostgresBinding():
     def __init__(self) -> None:
         L.isInfo and L.log("Initialize postgres binding!")
 
-        # create transaction locks
-        self.lockResources = Lock()
-
-        # Connect to your postgres DB
+        # Connect to postgres DB
         self.connection = psycopg2.connect(database="acme-cse", host="localhost", user="postgres", password="musang")
         # Open a cursor to perform database operations
         self.cursor = self.connection.cursor()
@@ -32,10 +29,9 @@ class PostgresBinding():
     #
 
     def insertResource(self, resource: Resource) -> None:
-        with self.lockResources:
-            # self.tabResources.insert(resource.dict)
-            self.cursor.execute(resource.getInsertQuery())
-            self.connection.commit()
+        # self.tabResources.insert(resource.dict)
+        self.cursor.execute(resource.getInsertQuery())
+        self.connection.commit()
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -49,22 +45,20 @@ class PostgresBinding():
 
     def updateResource(self, resource: Resource) -> Resource:
         #L.logDebug(resource)
-        with self.lockResources:
-            # ri = resource.ri
-            # self.tabResources.update(resource.dict, self.resourceQuery.ri == ri)
-            # # remove nullified fields from db and resource
-            # for k in list(resource.dict):
-            # 	if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
-            # 		self.tabResources.update(delete(k), self.resourceQuery.ri == ri)	# type: ignore [no-untyped-call]
-            # 		del resource.dict[k]
-            # return resource
-            pass
+        # ri = resource.ri
+        # self.tabResources.update(resource.dict, self.resourceQuery.ri == ri)
+        # # remove nullified fields from db and resource
+        # for k in list(resource.dict):
+        # 	if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
+        # 		self.tabResources.update(delete(k), self.resourceQuery.ri == ri)	# type: ignore [no-untyped-call]
+        # 		del resource.dict[k]
+        # return resource
+        pass
 
 
     def deleteResource(self, resource:Resource) -> None:
-        with self.lockResources:
-            # self.tabResources.remove(self.resourceQuery.ri == resource.ri)	
-            pass
+        # self.tabResources.remove(self.resourceQuery.ri == resource.ri)	
+        pass
     
 
     def searchResources(self, ri:Optional[str] = None, 
@@ -74,25 +68,7 @@ class PostgresBinding():
                               ty:Optional[int] = None, 
                               aei:Optional[str] = None) -> list[Document]:
 
-        """
-        For return as document, create dict that already mapped from query result (1), then create Document(dict) object from tiny db
-        (1) has a problem, so it needs to somehow mapped based on every resource type and if field value is null, then don't include the field.
-        Other problem is, what mapFunction from what resource needs to be called? 
-
-        Or just refactor everything that return tinydb.Document and Result with raw resource
-        """
-        # SELECT JSON_AGG(resources) as resources, JSON_AGG(acp) as acp FROM resources, acp WHERE resources.ri = 'acp1234' AND resources.index = acp.resource_index;
-        # TODO: For result that return multiple data, somehow need to map result from resource table query and resource type specific query
         # TODO: For resource that have ontologyRef (eg. cnt and ae), in DB it's not in shortname instead ontologyref
-        # SELECT JSON_AGG(resources) FROM resources WHERE ri = 'acp1234';
-        # select JSON_AGG(acp) FROM acp WHERE resource_index = resources.index;
-        # for type name, get __rtype__ separator by ':' and get index 1
-
-        """
-        SELECT row_to_json(results) FROM (
-            SELECT * FROM resources, acp WHERE resources.ty = 1 AND resources.index = acp.resource_index
-        ) as results;
-        """
 
         if ri:
             return self._selectByRI(ri = ri)
@@ -115,42 +91,47 @@ class PostgresBinding():
     def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
         # TODO: In here, how to apply it? biatch???
         # Maybe result that already in dict, passed to func callable. func expect JSON type which is Dict[str, Any]
-        with self.lockResources:
-            # return self.tabResources.search(func)	# type: ignore [arg-type]
-            pass
+        # return self.tabResources.search(func)	# type: ignore [arg-type]
+        pass
 
 
     def hasResource(self, ri:Optional[str] = None, 
                           csi:Optional[str] = None, 
                           srn:Optional[str] = None,
-                          ty:Optional[int] = None) -> bool:
-        # if not srn:
-        # 	with self.lockResources:
-        # 		if ri:
-        # 			return self.tabResources.contains(self.resourceQuery.ri == ri)	
-        # 		elif csi :
-        # 			return self.tabResources.contains(self.resourceQuery.csi == csi)
-        # 		elif ty is not None:	# ty is an int
-        # 			return self.tabResources.contains(self.resourceQuery.ty == ty)
-        # else:
-        # 	# find the ri first and then try again recursively
-        # 	if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
-        # 		return self.hasResource(ri = identifiers[0]['ri'])
-        # return False
-        pass
+                          ty:Optional[int] = None) -> bool:        
+        query = "SELECT EXISTS (SELECT 1 FROM {} WHERE {} = {} LIMIT 1);"
+        
+        if ri:
+            query = query.format("resources", "ri", f"'{ri}'")
+        elif ty:
+            query = query.format("resources", "ty", ty)
+        elif srn:
+            query = query.format("resources", "__srn__", f"'{srn}'")
+        elif csi:
+            query = query.format("cb", "csi", f"'{csi}'")
+        
+        return self._execQuery(query)[0]
 
 
     def countResources(self) -> int:
-        with self.lockResources:
-            # return len(self.tabResources)
-            pass
+        query = "SELECT COUNT(*) FROM resources;"
+        return self._execQuery(query)[0]
+
+        
+    def countResourcesBy(self, pi:str, ty:Optional[ResourceTypes] = None) -> int:
+        query = f"SELECT COUNT(*) FROM resources WHERE pi = '{pi}'"
+        if ty != None:
+            query = query + f" AND ty = {ty}"
+        query = query + ";"
+
+        return self._execQuery(query)[0]
 
 
     def searchByFragment(self, dct:dict) -> list[Document]:
         """ Search and return all resources that match the given dictionary/document. """
-        with self.lockResources:
-            # return self.tabResources.search(self.resourceQuery.fragment(dct))
-            pass
+        # return self.tabResources.search(self.resourceQuery.fragment(dct))
+        pass
+
 
     def _selectByRI(self, ri: str) -> list[dict]:
         """Expected only return 1 value, because resource identifier is unique
@@ -204,10 +185,8 @@ class PostgresBinding():
         if len(baseResult) == 0:
             return []
         
+        # TODO: Optimize query call by using pgsql loop in the query?
         result = []
-
-        # TODO: How to map dict from resources table and "resource type" table
-        
         for base in baseResult:
             # Get resource type name in shortname for table name reference
             rtype = base["__rtype__"]
@@ -238,6 +217,7 @@ class PostgresBinding():
             query = query.format("cb", pi, ty, "cb")
 
         return self._execQuery(query)
+    
 
     def _selectByTY(self, ty: int) -> list:
         query = """
@@ -256,6 +236,7 @@ class PostgresBinding():
 
         return self._execQuery(query)
     
+    
     def _selectByCSI(self, csi: str) -> list[dict]:
         # NOTE: Can do this only 1 query, because it directly select from resource type
         query = """
@@ -273,6 +254,7 @@ class PostgresBinding():
                 ) as results;
                 """.format(aei)
         return self._execQuery(query)
+    
     
     def _selectBySRN(self, srn: str) -> list[dict]:
         # Retrieve data from resources table
@@ -293,11 +275,9 @@ class PostgresBinding():
         
         # TODO: If resourceResult is empty, return empty
         
-        # Merge dict into 1 dictionary and append to list
-        result = []
-        result.append( baseResult[0] | resourceResult[0] )
-        
-        return result
+        # Return merge data from resources table and specific resource type table
+        return [( baseResult[0] | resourceResult[0] )]
+    
 
     def _execQuery(self, query: str) -> list:
         self.cursor.execute(query)
