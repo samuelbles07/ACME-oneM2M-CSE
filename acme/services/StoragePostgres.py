@@ -20,18 +20,23 @@ class PostgresBinding():
         L.isInfo and L.log("Initialize postgres binding!")
 
         # Connect to postgres DB
-        self.connection = psycopg2.connect(database="acme-cse", host="localhost", user="postgres", password="musang")
+        self._connection = psycopg2.connect(database="acme-cse", host="localhost", user="postgres", password="musang")
         # Open a cursor to perform database operations
-        self.cursor = self.connection.cursor()
-
+        self._cursor = self._connection.cursor()
+        
+    def closeConnection(self):
+        # Close cursor and connection to databse
+        self._cursor.close()
+        self._connection.close()
+        
     #
     #	Resources
     #
 
     def insertResource(self, resource: Resource) -> None:
         # self.tabResources.insert(resource.dict)
-        self.cursor.execute(resource.getInsertQuery())
-        self.connection.commit()
+        self._cursor.execute(resource.getInsertQuery())
+        self._connection.commit()
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -88,11 +93,31 @@ class PostgresBinding():
         return []
 
 
-    def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
-        # TODO: In here, how to apply it? biatch???
-        # Maybe result that already in dict, passed to func callable. func expect JSON type which is Dict[str, Any]
-        # return self.tabResources.search(func)	# type: ignore [arg-type]
-        pass
+    # def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
+    #     # Maybe result that already in dict, passed to func callable. func expect JSON type which is Dict[str, Any]
+    #     # return self.tabResources.search(func)	# type: ignore [arg-type]
+    #     pass
+    
+    def retrieveOldestResource(self, ty: int, pi:Optional[str] = None) -> dict:
+        # Get shortname of resources type
+        rType = ResourceTypes(ty).tpe()
+        tyShortName = rType.split(":")[1]
+        
+        # Format and execute query
+        query = """
+                SELECT row_to_json(results) FROM (
+                    SELECT * FROM resources, {} WHERE resources.ty = {} AND resources.index = {}.resource_index {}ORDER BY resources.ct LIMIT 1
+                ) as results;
+                """
+        query = query.format(tyShortName, ty, tyShortName, (f"AND resources.pi='{pi}' " if pi != None else ""))        
+        print(query)
+        result = self._execQuery(query)
+        
+        return (result[0] if len(result) > 0 else result)
+    
+        # TODO: Fix self._execQuery in this file that directly access index 0, when execQuery return empty list
+        
+    
 
 
     def hasResource(self, ri:Optional[str] = None, 
@@ -119,6 +144,7 @@ class PostgresBinding():
 
         
     def countResourcesBy(self, pi:str, ty:Optional[ResourceTypes] = None) -> int:
+        # TODO: This is not a pythonic way to write
         query = f"SELECT COUNT(*) FROM resources WHERE pi = '{pi}'"
         if ty != None:
             query = query + f" AND ty = {ty}"
@@ -202,37 +228,30 @@ class PostgresBinding():
 
 
     def _selectByPI(self, pi: str, ty: int) -> list[dict]:
+        # Get shortname of resources type 
+        rType = ResourceTypes(ty).tpe()
+        tyShortName = rType.split(":")[1]
+        # Format query
         query = """
                 SELECT row_to_json(results) FROM (
                     SELECT * FROM resources, {} WHERE resources.pi = '{}' AND resources.ty = {} AND resources.index = {}.resource_index
                 ) as results;
                 """
-         
-        # TODO: Get ty from ResourceType class       
-        if ty == 1:
-            query = query.format("acp", pi, ty, "acp")
-        elif ty == 2:
-            query = query.format("ae", pi, ty, "ae")
-        elif ty == 5:
-            query = query.format("cb", pi, ty, "cb")
-
+        query = query.format(tyShortName, pi, ty, tyShortName)
+        
         return self._execQuery(query)
     
 
     def _selectByTY(self, ty: int) -> list:
-        query = """
+        # Get shortname of resources type 
+        rType = ResourceTypes(ty).tpe()
+        tyShortName = rType.split(":")[1]
+        # Format query
+        query = f"""
                 SELECT row_to_json(results) FROM (
-                    SELECT * FROM resources, {} WHERE resources.ty = {} AND resources.index = {}.resource_index
+                    SELECT * FROM resources, {tyShortName} WHERE resources.ty = {ty} AND resources.index = {tyShortName}.resource_index
                 ) as results;
                 """
-         
-        # TODO: Get ty from ResourceType class       
-        if ty == 1:
-            query = query.format("acp", ty, "acp")
-        elif ty == 2:
-            query = query.format("ae", ty, "ae")
-        elif ty == 5:
-            query = query.format("cb", ty, "cb")
 
         return self._execQuery(query)
     
@@ -280,11 +299,23 @@ class PostgresBinding():
     
 
     def _execQuery(self, query: str) -> list:
-        self.cursor.execute(query)
-        rows = self.cursor.fetchall()
+        # TODO: Remove newline from query string
+        self._cursor.execute(query)
+        rows = self._cursor.fetchall()
         result = []
         for row in rows:
             result.append(row[0])
 
         return result
+    
+
+if __name__ == "__main__":
+    binding = PostgresBinding()
+    # print( binding.retrieveOldestResource(1) )
+    # print( binding.searchResources(ty=5) )
+    # print( binding.searchResources(pi = "cse1234", ty=1) )
+    
+    
+    binding.closeConnection()
+    
     
