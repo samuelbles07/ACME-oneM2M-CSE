@@ -98,26 +98,38 @@ class PostgresBinding():
     #     # return self.tabResources.search(func)	# type: ignore [arg-type]
     #     pass
     
-    def retrieveOldestResource(self, ty: int, pi:Optional[str] = None) -> dict:
+    def retrieveOldestResource(self, ty: int, pi:Optional[str] = None) -> Optional[dict]:
         # Get shortname of resources type
         rType = ResourceTypes(ty).tpe()
         tyShortName = rType.split(":")[1]
-        
         # Format and execute query
         query = """
                 SELECT row_to_json(results) FROM (
                     SELECT * FROM resources, {} WHERE resources.ty = {} AND resources.index = {}.resource_index {}ORDER BY resources.ct LIMIT 1
                 ) as results;
                 """
-        query = query.format(tyShortName, ty, tyShortName, (f"AND resources.pi='{pi}' " if pi != None else ""))        
-        print(query)
+        query = query.format(tyShortName, ty, tyShortName, (f"AND resources.pi='{pi}' " if pi != None else ""))
         result = self._execQuery(query)
         
-        return (result[0] if len(result) > 0 else result)
+        return (result[0] if len(result) > 0 else None)
     
-        # TODO: Fix self._execQuery in this file that directly access index 0, when execQuery return empty list
+        # TODO: Fix self._execQuery in this file that directly access index 0, when execQuery return empty list. if return not expect list but None, set type check to Optional
         
     
+    def retrieveLatestResource(self, ty: int, pi:Optional[str] = None) -> Optional[dict]:
+        # Get shortname of resources type
+        rType = ResourceTypes(ty).tpe()
+        tyShortName = rType.split(":")[1]
+        # Format and execute query
+        query = """
+                SELECT row_to_json(results) FROM (
+                    SELECT * FROM resources, {} WHERE resources.ty = {} AND resources.index = {}.resource_index {}ORDER BY resources.lt DESC LIMIT 1
+                ) as results;
+                """
+        query = query.format(tyShortName, ty, tyShortName, (f"AND resources.pi='{pi}' " if pi != None else ""))
+        result = self._execQuery(query)
+        
+        return (result[0] if len(result) > 0 else None)
 
 
     def hasResource(self, ri:Optional[str] = None, 
@@ -311,10 +323,10 @@ class PostgresBinding():
 
 if __name__ == "__main__":
     binding = PostgresBinding()
-    # print( binding.retrieveOldestResource(1) )
+    # print( binding.retrieveOldestResource(3) )
     # print( binding.searchResources(ty=5) )
     # print( binding.searchResources(pi = "cse1234", ty=1) )
-    
+    # print( binding.retrieveLatestResource(ty=1,pi="cse1234") )
     
     binding.closeConnection()
     
