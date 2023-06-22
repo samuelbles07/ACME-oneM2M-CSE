@@ -169,6 +169,37 @@ class PostgresBinding():
         """ Search and return all resources that match the given dictionary/document. """
         # return self.tabResources.search(self.resourceQuery.fragment(dct))
         pass
+    
+    def retrieveResourceBy(self, acpi: Optional[str] = None, 
+                           ty: Optional[int] = None, 
+                           filterResult: Optional[list] = None) -> Optional[list[JSON]]:
+        """ Retrieve list of resource in dict based on attribute value
+
+        Args:
+            acpi (Optional[str], optional): resources to search that have ACP ri in acpi attribute value. Defaults to None.
+            ty (Optional[int], optional): resources to search that match ty or to help query when need to retrieve specific resource attribute. Defaults to None.
+            filterResult (Optional[list], optional): list of attribute needs to retrieve. Defaults to None.
+
+        Returns:
+            Optional[list[JSON]]: list of resource in specific filter or all attributes
+        """        
+        
+        # TODO: Currently only specific used by ACP.deactivate(). For further development, make this a general purpose function
+        
+        query = ""
+        
+        if acpi:
+            query = f"""
+                    SELECT row_to_json(results) FROM (
+                        SELECT ri, acpi, __rtype__ FROM resources WHERE acpi @> '[\"{acpi}\"]'
+                    ) as results;
+                    """
+        
+        if query != "":
+            result = self._execQuery(query)
+            return result if result != [] else None
+            
+        return None
 
 
     def _selectByRI(self, ri: str) -> list[dict]:
@@ -327,6 +358,8 @@ if __name__ == "__main__":
     # print( binding.searchResources(ty=5) )
     # print( binding.searchResources(pi = "cse1234", ty=1) )
     # print( binding.retrieveLatestResource(ty=1,pi="cse1234") )
+    
+    print( binding.retrieveResourceBy(acpi="acp777") )
     
     binding.closeConnection()
     
