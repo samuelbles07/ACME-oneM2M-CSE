@@ -22,7 +22,7 @@ class Tables:
                     pi VARCHAR(255),
                     ct TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     lt TIMESTAMP NOT NULL,
-                    acpi VARCHAR(255),
+                    acpi JSONB,
                     et TIMESTAMP,
                     st INTEGER,
                     at JSONB,
