@@ -12,6 +12,8 @@
 from __future__ import annotations
 from typing import Any, Tuple, cast, Optional
 
+import json
+
 from copy import deepcopy
 
 from ..etc.Types import ResourceTypes, Result, NotificationEventType, ResponseStatusCode, CSERequest, JSON
@@ -907,11 +909,15 @@ class Resource(object):
 			return "NULL"
 
 		# Do not at single quotes if attribute value is Int
-		if type(result) == int:
-			return result
-
+		if type(attributeValue) == int:
+			return attributeValue
+		elif type(attributeValue) == list or type(attributeValue) == dict:
+			attributeValue = json.dumps(attributeValue) # stringify it first to support quote on string
+			
+  
+  
 		# Add single quotes to attribute value
-		return f"'{result}'"
+		return f"'{attributeValue}'"
 
 	
 	def _getInsertGeneralQuery(self) -> str:
