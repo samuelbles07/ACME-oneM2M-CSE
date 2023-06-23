@@ -35,8 +35,15 @@ class PostgresBinding():
 
     def insertResource(self, resource: Resource) -> None:
         # self.tabResources.insert(resource.dict)
-        self._cursor.execute(resource.getInsertQuery())
-        self._connection.commit()
+        query = resource.getInsertQuery()
+        L.isDebug and L.logDebug(f'Query: {query}')
+        with self._connection.cursor() as cursor:
+            try:
+                cursor.execute(query)
+            except Exception as e:
+                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
+                L.isDebug and L.logDebug("Rollback connection")
+                self._connection.rollback()
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -343,13 +350,21 @@ class PostgresBinding():
 
     def _execQuery(self, query: str) -> list:
         # TODO: Remove newline from query string
-        self._cursor.execute(query)
-        rows = self._cursor.fetchall()
+        L.isDebug and L.logDebug(f"Query: {query}")
         result = []
-        for row in rows:
-            result.append(row[0])
-
+        try:
+            with self._connection.cursor() as cursor:
+                cursor.execute(query)
+                rows = cursor.fetchall()
+                for row in rows:
+                    result.append(row[0])
+        except Exception as e:
+            L.logErr('Failed exec query: {}'.format(str(e)))
+            L.isDebug and L.logDebug("Rollback connection")
+            self._connection.rollback()
+            
         return result
+            
     
 
 if __name__ == "__main__":
