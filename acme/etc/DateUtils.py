@@ -46,7 +46,7 @@ def toISO8601Date(ts:Union[float, datetime], isUTCtimestamp:Optional[bool] = Tru
 			ts = datetime.fromtimestamp(ts)
 		else:
 			ts = datetime.utcfromtimestamp(ts)
-	return ts.strftime('%Y%m%dT%H%M%S,%f')
+	return ts.strftime('%Y-%m-%dT%H:%M:%S.%f')
 
 
 def fromAbsRelTimestamp(absRelTimestamp:str, 
