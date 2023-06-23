@@ -19,15 +19,18 @@ class PostgresBinding():
     def __init__(self) -> None:
         L.isInfo and L.log("Initialize postgres binding!")
 
+        # TODO: Add exception when error connect
         # Connect to postgres DB
-        self._connection = psycopg2.connect(database="acme-cse", host="localhost", user="postgres", password="musang")
+        self._connection = psycopg2.connect(database="acme-cse-test", host="localhost", user="postgres", password="musang")
         # Open a cursor to perform database operations
-        self._cursor = self._connection.cursor()
+        # self._cursor = self._connection.cursor()
+        L.isInfo and L.log('Postgres connection initialized')
         
     def closeConnection(self):
         # Close cursor and connection to databse
-        self._cursor.close()
+        # self._cursor.close()
         self._connection.close()
+        L.isInfo and L.log('Postgres connection closed')
         
     #
     #	Resources
@@ -37,13 +40,12 @@ class PostgresBinding():
         # self.tabResources.insert(resource.dict)
         query = resource.getInsertQuery()
         L.isDebug and L.logDebug(f'Query: {query}')
-        with self._connection.cursor() as cursor:
-            try:
+        try:
+            with self._connection, self._connection.cursor() as cursor:
                 cursor.execute(query)
-            except Exception as e:
-                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
-                L.isDebug and L.logDebug("Rollback connection")
-                self._connection.rollback()
+        except Exception as e:
+            L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
+            # L.isDebug and L.logDebug("Rollback connection")
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -353,15 +355,14 @@ class PostgresBinding():
         L.isDebug and L.logDebug(f"Query: {query}")
         result = []
         try:
-            with self._connection.cursor() as cursor:
+            with self._connection, self._connection.cursor() as cursor:
                 cursor.execute(query)
                 rows = cursor.fetchall()
                 for row in rows:
                     result.append(row[0])
         except Exception as e:
             L.logErr('Failed exec query: {}'.format(str(e)))
-            L.isDebug and L.logDebug("Rollback connection")
-            self._connection.rollback()
+            # L.isDebug and L.logDebug("Rollback connection")
             
         return result
             
