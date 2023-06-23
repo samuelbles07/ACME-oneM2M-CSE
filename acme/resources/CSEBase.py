@@ -145,12 +145,12 @@ class CSEBase(AnnounceableResource):
 
 	def getInsertQuery(self) -> Optional[str]:
 		query = """
-					INSERT INTO public.cse(resource_index, cst, csi, poa, nl, ncp, csz, srv)
+					INSERT INTO public.cb(resource_index, cst, csi, poa, nl, ncp, csz, srv)
 					SELECT rt.index, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
 				"""
 
 		return self._getInsertGeneralQuery() + query.format(
-			self.validateAttributeValue(self['cst']),
+			self.validateAttributeValue(int(self['cst'])), # Case enum to int
 			self.validateAttributeValue(self['csi']),
 			self.validateAttributeValue(self['poa']),
 			self.validateAttributeValue(self['nl']),
