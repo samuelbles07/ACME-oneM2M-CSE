@@ -32,7 +32,7 @@ class Tables:
                     daci JSONB,
                     cr VARCHAR(255),
                     __rtype__ VARCHAR NOT NULL,
-                    __originator__ VARCHAR NOT NULL,
+                    __originator__ VARCHAR,
                     __srn__ VARCHAR,
                     __announcedTo__ JSONB,
                     __rvi__ VARCHAR(255)
