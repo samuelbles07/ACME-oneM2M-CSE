@@ -52,7 +52,7 @@ class Resource(object):
 	_imported			= '__imported__'
 	""" Constant: Name of the *__imported__* attribute. This attribute indicates whether a resource was imported or created by a script, of created by a request. """
 
-	_announcedTo 		= '__announcedTo__'			# List
+	_announcedTo 		= '__announcedto__'			# List
 	""" Constant: Name of the *__announcedTo__* attribute. This attribute holds internal announcement information. """
 
 	_isInstantiated		= '__isInstantiated__'
@@ -72,10 +72,16 @@ class Resource(object):
 
 	_excludeFromUpdate = [ 'ri', 'ty', 'pi', 'ct', 'lt', 'st', 'rn', 'mgd' ]
 	"""	Resource attributes that are excluded when updating the resource """
+ 
+	_index				= "index"
+	# Postgres id increment in resources table
+ 
+	_resource_index		= "resource_index"
+	# Postgres id increment in resource type specific table
 
 	# ATTN: There is a similar definition in FCNT, TSB, and others! Don't Forget to add attributes there as well
-	internalAttributes	= [ _rtype, _srn, _node, _createdInternally, _imported, 
-							_isInstantiated, _originator, _announcedTo, _modified, _remoteID, _rvi ]
+	internalAttributes	= [ _rtype, _srn, _node, _createdInternally, _imported, _resource_index,
+							_isInstantiated, _originator, _announcedTo, _modified, _remoteID, _rvi, _index ]
 	"""	List of internal attributes and which do not belong to the oneM2M resource attributes """
 
 	def __init__(self, 
