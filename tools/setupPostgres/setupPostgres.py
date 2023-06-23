@@ -76,7 +76,7 @@ class Tables:
                     nl VARCHAR(255),
                     csz JSONB,
                     scp JSONB,
-                    srv JSONB NOT NULL,
+                    srv JSONB,
                     CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
                 );
                 """
