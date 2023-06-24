@@ -26,11 +26,14 @@ class PostgresBinding():
         # self._cursor = self._connection.cursor()
         L.isInfo and L.log('Postgres connection initialized')
         
+        self._lockExecution = Lock()
+        
     def closeConnection(self):
         # Close cursor and connection to databse
         # self._cursor.close()
-        self._connection.close()
-        L.isInfo and L.log('Postgres connection closed')
+        with self._lockExecution:
+            self._connection.close()
+            L.isInfo and L.log('Postgres connection closed')
         
     #
     #	Resources
@@ -354,15 +357,16 @@ class PostgresBinding():
         # TODO: Remove newline from query string
         L.isDebug and L.logDebug(f"Query: {query}")
         result = []
-        try:
-            with self._connection, self._connection.cursor() as cursor:
-                cursor.execute(query)
-                rows = cursor.fetchall()
-                for row in rows:
-                    result.append(row[0])
-        except Exception as e:
-            L.logErr('Failed exec query: {}'.format(str(e)))
-            # L.isDebug and L.logDebug("Rollback connection")
+        with self._lockExecution:
+            try:
+                with self._connection, self._connection.cursor() as cursor:
+                    cursor.execute(query)
+                    rows = cursor.fetchall()
+                    for row in rows:
+                        result.append(row[0])
+            except Exception as e:
+                L.logErr('Failed exec query: {}'.format(str(e)))
+                # L.isDebug and L.logDebug("Rollback connection")
             
         return result
             
