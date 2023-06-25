@@ -51,7 +51,7 @@ class Tables:
                     adri JSONB,
                     apri JSONB,
                     airi JSONB,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
     
@@ -77,7 +77,7 @@ class Tables:
                     csz JSONB,
                     scp JSONB,
                     srv JSONB,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
 
@@ -96,7 +96,7 @@ class Tables:
                     li VARCHAR(255),
                     ontologyRef VARCHAR(255),
                     disr BOOLEAN,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
 
@@ -112,7 +112,7 @@ class Tables:
                     conr VARCHAR(255),
                     ontologyRef VARCHAR(255),
                     con VARCHAR(255) NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
     
@@ -130,7 +130,7 @@ class Tables:
                     ncp VARCHAR(255),
                     csz JSONB,
                     srv JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
 
@@ -157,7 +157,7 @@ class Tables:
                     tren BOOLEAN,
                     ape JSONB,
                     srv JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
 
@@ -179,7 +179,7 @@ class Tables:
                     gn VARCHAR(255),
                     ssi BOOLEAN,
                     nar INTEGER,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """   
     
@@ -205,7 +205,7 @@ class Tables:
                     nec INTEGER,
                     su VARCHAR(255),
                     acrs VARCHAR(255),
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """   
     
@@ -223,7 +223,7 @@ class Tables:
                     mgca VARCHAR(255),
                     rms VARCHAR(255),
                     nid VARCHAR(255),
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """   
 
@@ -243,7 +243,7 @@ class Tables:
                     url VARCHAR(255) NOT NULL,
                     ud BOOLEAN NOT NULL,
                     uds JSONB NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
     
@@ -276,7 +276,7 @@ class Tables:
                     spur VARCHAR(255),
                     purl VARCHAR(255),
                     ptl JSONB,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
 
@@ -295,7 +295,7 @@ class Tables:
                     pc TEXT,
                     rs SMALLINT NOT NULL,
                     ors TEXT NOT NULL,
-                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index)
+                    CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
 
