@@ -1198,21 +1198,13 @@ class Dispatcher(object):
 		""" Return total number of resources.
 			Optional filter by type.
 		"""
-
 		# Count all resources
-		if ty is None:	# ty is an int
+		if ty == None:	# ty is an int
 			return CSE.storage.countResources()
-		
-		# TODO: Just call countResource from Storage
-		# Count all resources of the given types
-		if isinstance(ty, tuple):
-			cnt = 0
-			for t in ty:
-				cnt += len(CSE.storage.retrieveResourcesByType(t))
-			return cnt
-
-		# Count all resources of a specific type
-		return len(CSE.storage.retrieveResourcesByType(ty))
+		elif isinstance(ty, tuple):
+			return CSE.storage.countResources(ty)
+		else:
+			return CSE.storage.countResources( (ty,) )
 
 
 	def retrieveResourcesByType(self, ty:ResourceTypes) -> list[Resource]:
