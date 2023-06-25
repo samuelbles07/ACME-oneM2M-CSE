@@ -342,7 +342,6 @@ class Storage(object):
 			Returns:
 				Return a list of resources, or a list of raw resource dictionaries.
 		"""
-		# TODO: Search resources already return list of resources in dict, so doesn't have to loop thourgh again like line 309
   
 		docs = self._postgres.searchResources(pi = pi, ty = ( int(ty) if ty != None else ty))
 		return docs if raw else cast(List[Resource], list(map(lambda x: Factory.resourceFromDict(x).resource, docs)))
@@ -368,7 +367,7 @@ class Storage(object):
 			Returns:
 				The number of CSE resources.
 		"""
-		if not isinstance(ty, tuple) or ty == None:
+		if not isinstance(ty, tuple) and ty != None:
 			L.logErr("Type of argument passed is not a tuple or None as required")
 			return 0
 
