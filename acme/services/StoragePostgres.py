@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Callable, cast, List, Optional
+from typing import Callable, cast, List, Optional, Tuple
 
 import os, shutil
 from threading import Lock
@@ -210,8 +210,21 @@ class PostgresBinding():
         result = self._execQuery(query)
         return result[0] if len(result) > 0 else False
 
-    def countResources(self) -> int:
-        query = "SELECT COUNT(*) FROM resources;"
+
+    def countResources(self, ty: Tuple[ResourceTypes, ...] = None) -> int:
+        query = ""
+        if ty == None:
+            query = "SELECT COUNT(*) FROM resources;"
+        else:
+            # Loop through tuple to build the query
+            query = f'SELECT COUNT(*) FROM resources WHERE ty = { int(ty[0]) } '
+            for i, t in enumerate(ty):
+                if i == 0:
+                    continue
+                query += f'OR ty = { int(t) } '
+                
+        print(query)
+        
         result = self._execQuery(query)
         return result[0] if len(result) > 0 else 0
 
