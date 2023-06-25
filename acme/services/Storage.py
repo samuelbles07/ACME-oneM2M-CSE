@@ -324,8 +324,8 @@ class Storage(object):
 			Return:
 				Result object.
 		"""
-		# L.logDebug(f'Removing resource (ty: {resource.ty}, ri: {ri}, rn: {resource.rn})'
-		# self.db.deleteResource(resource)
+		# L.logDebug(f'Removing resource (ty: {resource.ty}, ri: {resource.ri}, rn: {resource.rn}')
+		self._postgres.deleteResource(resource)
 		self.db.deleteIdentifier(resource)
 		return Result(status = True, rsc = ResponseStatusCode.deleted)
 
@@ -712,7 +712,7 @@ class TinyDBBinding(object):
 
 
 	def insertIdentifier(self, resource:Resource, ri:str, srn:str) -> None:
-		# L.isDebug and L.logDebug({'ri' : ri, 'rn' : resource.rn, 'srn' : srn, 'ty' : resource.ty})		
+		# L.isDebug and L.logDebug({'ri' : ri, 'rn' : resource.rn, 'srn' : srn, 'ty' : resource.ty})	
 		with self.lockIdentifiers:
 			self.tabIdentifiers.upsert(
 				{	'ri' : ri, 
