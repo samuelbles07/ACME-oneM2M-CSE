@@ -1157,9 +1157,6 @@ class Dispatcher(object):
 										   oldest:Optional[bool] = False) -> Optional[Resource]:
 		"""	Get the latest or oldest x-Instance resource for a parent.
 
-			This is done by searching through all resources once to find the fitting resource 
-			(parent + type)	with the latest or oldest *ct* attribute.
-
 			Args:
 				pi: parent resourceIdentifier
 				ty: resource type to look for
@@ -1168,27 +1165,17 @@ class Dispatcher(object):
 			Return:
 				Resource
 		"""
-		hit:Tuple[JSON, str] = None
-		op = operator.gt if oldest else operator.lt
-
-		# This function used as a mapper to search through all resources and
-		# determines the newest CIN resource for this parent
-		# This should be a bit faster than getting all the CIN, instantiating them, 
-		# and throwig them all away etc
-		def determineLatest(res:JSON) -> bool:
-			nonlocal hit
-			if res['pi'] == pi and res['ty'] == ty:
-				ct = res['ct']
-				if not hit or op(hit[1], ct):
-					hit = ( res, ct )
-			return False
-
-		# Search through the resources with the mapping functions
-		CSE.storage.searchByFilter(filter = determineLatest)
-		if not hit:
+		result = None
+		if oldest:
+			result = CSE.storage.retrieveOldestResource(ty = int(ty), pi = pi)
+		else:
+			result = CSE.storage.retrieveLatestResource(ty = int(ty), pi = pi)
+			
+		if result == None:
 			return None
+
 		# Instantiate and return resource
-		return Factory.resourceFromDict(hit[0]).resource
+		return Factory.resourceFromDict(result).resource
 
 
 	def discoverChildren(self, id:str, 
@@ -1216,6 +1203,7 @@ class Dispatcher(object):
 		if ty is None:	# ty is an int
 			return CSE.storage.countResources()
 		
+		# TODO: Just call countResource from Storage
 		# Count all resources of the given types
 		if isinstance(ty, tuple):
 			cnt = 0

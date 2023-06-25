@@ -14,6 +14,8 @@ from ..resources.Resource import Resource
 from ..resources import Factory
 from ..services.Logging import Logging as L
 
+# TODO: Because of threading, and only using 1 connetion pool. If 2 request at the time happen to DB, error occur: Failed exec query: the connection cannot be re-entered recursively
+
 
 class PostgresBinding():
     def __init__(self) -> None:
@@ -43,12 +45,13 @@ class PostgresBinding():
         # self.tabResources.insert(resource.dict)
         query = resource.getInsertQuery()
         L.isDebug and L.logDebug(f'Query: {query}')
-        try:
-            with self._connection, self._connection.cursor() as cursor:
-                cursor.execute(query)
-        except Exception as e:
-            L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
-            # L.isDebug and L.logDebug("Rollback connection")
+        with self._lockExecution:
+            try:
+                with self._connection, self._connection.cursor() as cursor:
+                    cursor.execute(query)
+            except Exception as e:
+                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
+                # L.isDebug and L.logDebug("Rollback connection")
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -103,12 +106,27 @@ class PostgresBinding():
             return self._selectBySRN(srn = srn)
 
         return []
+    
+    
+    def retrieveResourceByAttribute(self, acpi: Optional[str] = None, 
+                           ty: Optional[int] = None, 
+                           filterResult: Optional[list] = None) -> Optional[list[JSON]]:
+        """ Retrieve list of resource in dict based on attribute value
 
+        Args:
+            acpi (Optional[str], optional): resources to search that have ACP ri in acpi attribute value. Defaults to None.
+            ty (Optional[int], optional): resources to search that match ty or to help query when need to retrieve specific resource attribute. Defaults to None.
+            filterResult (Optional[list], optional): list of attribute needs to retrieve. Defaults to None.
 
-    # def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
-    #     # Maybe result that already in dict, passed to func callable. func expect JSON type which is Dict[str, Any]
-    #     # return self.tabResources.search(func)	# type: ignore [arg-type]
-    #     pass
+        Returns:
+            Optional[list[JSON]]: list of resource in specific filter or all attributes
+        """
+        result = []
+        if acpi:
+            result = self._selectByACPI(acpi)
+            
+        return (result if result != [] else None)
+    
     
     def retrieveOldestResource(self, ty: int, pi:Optional[str] = None) -> Optional[dict]:
         # Get shortname of resources type
@@ -142,6 +160,36 @@ class PostgresBinding():
         result = self._execQuery(query)
         
         return (result[0] if len(result) > 0 else None)
+    
+    
+    def retrieveExpiredResource(self) -> list[JSON]:
+        # TODO: Need to return full resources with attributes from found resource type
+        # Somehow value of __type__ will be the table name. How to doit?
+        # query = "SELECT ri FROM resources WHERE et < now();"
+        # return self._execQuery(query)
+    
+        query = f"""
+                    SELECT row_to_json(results) FROM (
+                       SELECT * FROM resources WHERE et < now();
+                    ) as results;
+                    """
+        baseResult = self._execQuery(query)
+        
+        # TODO: Optimize query call by using pgsql loop in the query?
+        result = []
+        for base in baseResult:
+            # Get resource type name in shortname for table name reference
+            rtype = base["__rtype__"]
+            tyShortName = rtype.split(":")[1]
+            
+            # Retrieve data from target resource type table
+            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, base["index"])
+            resourceResult = self._execQuery(query)
+            # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
+            if len(resourceResult) > 0:
+                result.append( base | resourceResult[0] )
+            
+        return result
 
 
     def hasResource(self, ri:Optional[str] = None, 
@@ -159,12 +207,13 @@ class PostgresBinding():
         elif csi:
             query = query.format("cb", "csi", f"'{csi}'")
         
-        return self._execQuery(query)[0]
-
+        result = self._execQuery(query)
+        return result[0] if len(result) > 0 else False
 
     def countResources(self) -> int:
         query = "SELECT COUNT(*) FROM resources;"
-        return self._execQuery(query)[0]
+        result = self._execQuery(query)
+        return result[0] if len(result) > 0 else 0
 
         
     def countResourcesBy(self, pi:str, ty:Optional[ResourceTypes] = None) -> int:
@@ -173,45 +222,14 @@ class PostgresBinding():
         if ty != None:
             query = query + f" AND ty = {ty}"
         query = query + ";"
-
-        return self._execQuery(query)[0]
+        result = self._execQuery(query)
+        return result[0] if len(result) > 0 else 0
 
 
     def searchByFragment(self, dct:dict) -> list[Document]:
         """ Search and return all resources that match the given dictionary/document. """
         # return self.tabResources.search(self.resourceQuery.fragment(dct))
         pass
-    
-    def retrieveResourceBy(self, acpi: Optional[str] = None, 
-                           ty: Optional[int] = None, 
-                           filterResult: Optional[list] = None) -> Optional[list[JSON]]:
-        """ Retrieve list of resource in dict based on attribute value
-
-        Args:
-            acpi (Optional[str], optional): resources to search that have ACP ri in acpi attribute value. Defaults to None.
-            ty (Optional[int], optional): resources to search that match ty or to help query when need to retrieve specific resource attribute. Defaults to None.
-            filterResult (Optional[list], optional): list of attribute needs to retrieve. Defaults to None.
-
-        Returns:
-            Optional[list[JSON]]: list of resource in specific filter or all attributes
-        """        
-        
-        # TODO: Currently only specific used by ACP.deactivate(). For further development, make this a general purpose function
-        
-        query = ""
-        
-        if acpi:
-            query = f"""
-                    SELECT row_to_json(results) FROM (
-                        SELECT ri, acpi, __rtype__ FROM resources WHERE acpi @> '[\"{acpi}\"]'
-                    ) as results;
-                    """
-        
-        if query != "":
-            result = self._execQuery(query)
-            return result if result != [] else None
-            
-        return None
 
 
     def _selectByRI(self, ri: str) -> list[dict]:
@@ -224,6 +242,7 @@ class PostgresBinding():
             list[dict]: resource attribute in list of dict. List only have 1 data.
         """
         
+        # TODO: Do it in 1 query, result _rtype_ as reference table to look for
         # Retrieve data from resources table
         query = "SELECT row_to_json(resources) FROM resources WHERE ri = '{}'".format(ri)
         baseResult = self._execQuery(query)
@@ -240,25 +259,39 @@ class PostgresBinding():
         query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, baseResult[0]["index"])
         resourceResult = self._execQuery(query)
         
-        # TODO: If resourceResult is empty, return empty
-        
-        # Merge dict into 1 dictionary and append to list
         result = []
-        result.append( baseResult[0] | resourceResult[0] )
+        # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
+        if len(resourceResult) > 0:
+            # merge data from resources table and specific resource type table
+            result.append( baseResult[0] | resourceResult[0] )
         
         return result
         
         
-    def _selectByPI(self, pi: str) -> list[dict]:
+    def _selectByPI(self, pi: str, ty: Optional[int] = None) -> list[dict]:
         """ Return list of resource that parentId match
 
         Args:
             pi (str): target parent id that want to retrieve
+            ty (Optional[int]): filter search with type. Default None
 
         Returns:
             list[dict]: list of resources that parentId is match or empty list
         """
+        if ty:
+            # Get shortname of resources type 
+            rType = ResourceTypes(ty).tpe()
+            tyShortName = rType.split(":")[1]
+            # Format query
+            query = """
+                    SELECT row_to_json(results) FROM (
+                        SELECT * FROM resources, {} WHERE resources.pi = '{}' AND resources.ty = {} AND resources.index = {}.resource_index
+                    ) as results;
+                    """
+            query = query.format(tyShortName, pi, ty, tyShortName)
+            return self._execQuery(query)
         
+        # No reference what the resource type of the ri
         query = "SELECT row_to_json(resources) FROM resources WHERE pi = '{}'".format(pi)
         baseResult = self._execQuery(query)
         
@@ -276,25 +309,12 @@ class PostgresBinding():
             # Retrieve data from target resource type table
             query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, base["index"])
             resourceResult = self._execQuery(query)
-            # TODO: If query result is empty, don't append to result
-            result.append( base | resourceResult[0] )
+            # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
+            if len(resourceResult) > 0:
+                # merge data from resources table and specific resource type table
+                result.append( base | resourceResult[0] )
         
         return result
-
-
-    def _selectByPI(self, pi: str, ty: int) -> list[dict]:
-        # Get shortname of resources type 
-        rType = ResourceTypes(ty).tpe()
-        tyShortName = rType.split(":")[1]
-        # Format query
-        query = """
-                SELECT row_to_json(results) FROM (
-                    SELECT * FROM resources, {} WHERE resources.pi = '{}' AND resources.ty = {} AND resources.index = {}.resource_index
-                ) as results;
-                """
-        query = query.format(tyShortName, pi, ty, tyShortName)
-        
-        return self._execQuery(query)
     
 
     def _selectByTY(self, ty: int) -> list:
@@ -347,10 +367,38 @@ class PostgresBinding():
         query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, baseResult[0]["index"])
         resourceResult = self._execQuery(query)
         
-        # TODO: If resourceResult is empty, return empty
+        result = []
+        # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
+        if len(resourceResult) > 0:
+            # merge data from resources table and specific resource type table
+            result.append( baseResult[0] | resourceResult[0] )
         
-        # Return merge data from resources table and specific resource type table
-        return [( baseResult[0] | resourceResult[0] )]
+        return result
+    
+    
+    def _selectByACPI(self, acpi: str) -> list[dict]:
+        query = f"""
+                    SELECT row_to_json(results) FROM (
+                        SELECT * FROM resources WHERE acpi @> '[\"{acpi}\"]'
+                    ) as results;
+                    """
+        baseResult = self._execQuery(query)
+        
+        # TODO: Optimize query call by using pgsql loop in the query?
+        result = []
+        for base in baseResult:
+            # Get resource type name in shortname for table name reference
+            rtype = base["__rtype__"]
+            tyShortName = rtype.split(":")[1]
+            
+            # Retrieve data from target resource type table
+            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, base["index"])
+            resourceResult = self._execQuery(query)
+            # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
+            if len(resourceResult) > 0:
+                result.append( base | resourceResult[0] )
+        
+        return result
     
 
     def _execQuery(self, query: str) -> list:
@@ -379,7 +427,9 @@ if __name__ == "__main__":
     # print( binding.searchResources(pi = "cse1234", ty=1) )
     # print( binding.retrieveLatestResource(ty=1,pi="cse1234") )
     
-    print( binding.retrieveResourceBy(acpi="acp777") )
+    # print( binding.retrieveResourceAttribute(acpi="acp1234") )
+    
+    # print( binding.retrieveExpiredResource() )
     
     binding.closeConnection()
     

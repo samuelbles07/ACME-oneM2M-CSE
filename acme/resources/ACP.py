@@ -95,15 +95,16 @@ class ACP(AnnounceableResource):
 	def deactivate(self, originator:str) -> None:
 		# Inherited
 		super().deactivate(originator)
+  
+		# NOTE: [IMPROVEMENT] update doesn't have to create resource then update. Which in this case only need ri and acpi, the only update acpi
 
 		# Remove own resourceID from all acpi
-		L.isDebug and L.logDebug(f'Removing acp.ri: {self.ri} from assigned resource acpi')
-		for r in CSE.storage.searchByFilter(lambda r: (acpi := r.get('acpi')) is not None and self.ri in acpi):	# search for presence in acpi, not perfect match
+		L.isDebug and L.logDebug(f'Removing acp.ri: {self.ri} from assigned resource acpi')    
+		for r in CSE.storage.retrieveResourceBy(apci = self.ri):	# search for presence in acpi, not perfect match
 			acpi = r.acpi
-			if self.ri in acpi:
-				acpi.remove(self.ri)
-				r['acpi'] = acpi if len(acpi) > 0 else None	# Remove acpi from resource if empty
-				r.dbUpdate()
+			acpi.remove(self.ri)
+			r['acpi'] = acpi if len(acpi) > 0 else None	# Remove acpi from resource if empty
+			r.dbUpdate()
 
 
 	def validateAnnouncedDict(self, dct:JSON) -> JSON:

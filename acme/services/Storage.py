@@ -29,6 +29,7 @@ from ..services import CSE
 from ..resources.Resource import Resource
 from ..resources import Factory
 from ..services.Logging import Logging as L
+from ..services.StoragePostgres import PostgresBinding
 
 
 class Storage(object):
@@ -73,6 +74,9 @@ class Storage(object):
 		if not self.inMemory and not self.dbReset and not self._backupDB():
 			raise RuntimeError('DB Error')
 
+		# NOTE: Initiate postgres binding here
+		self._postgres = PostgresBinding()
+
 		L.isInfo and L.log('Storage initialized')
 
 
@@ -83,6 +87,8 @@ class Storage(object):
 				Always True.
 		"""
 		self.db.closeDB()
+		# NOTE: Close postgres connnection
+		self._postgres.closeConnection()
 		self.db = None
 		L.isInfo and L.log('Storage shut down')
 		return True
@@ -111,8 +117,8 @@ class Storage(object):
 		L.isDebug and L.logDebug('Validating database files')
 		dbFile = ''
 		try:
-			dbFile = 'resources'
-			self.hasResource('_')
+			# dbFile = 'resources'
+			# self.hasResource('_')
 			dbFile = 'identifiers'
 			self.structuredIdentifier('_')
 			dbFile = 'subscription'
@@ -155,15 +161,19 @@ class Storage(object):
 			Return:
 				Result object indicating success or error status.
 		"""
+		# TODO: Get resource insert sql query here
+
 		ri  = resource.ri
 		srn = resource.getSrn()
 		# L.logDebug(f'Adding resource (ty: {resource.ty}, ri: {resource.ri}, rn: {resource.rn}, srn: {srn}')
 		if overwrite:
 			L.isDebug and L.logDebug('Resource enforced overwrite')
-			self.db.upsertResource(resource)
+			# self.db.upsertResource(resource)
+			self._postgres.upsertResource(resource)
 		else: 
 			if not self.hasResource(ri, srn):	# Only when not resource does not exist yet
-				self.db.insertResource(resource)
+				# self.db.insertResource(resource)
+				self._postgres.insertResource(resource)
 			else:
 				return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logWarn(f'Resource already exists (Skipping): {resource} ri: {ri} srn:{srn}'))
 
@@ -183,7 +193,7 @@ class Storage(object):
 			Returns:
 				True when a resource with the ID or name exists.
 		"""
-		return (ri is not None and self.db.hasResource(ri = ri)) or (srn is not None and self.db.hasResource(srn = srn))
+		return (ri is not None and self._postgres.hasResource(ri = ri)) or (srn is not None and self._postgres.hasResource(srn = srn))
 
 
 	def retrieveResource(self,	ri:Optional[str] = None, 
@@ -206,19 +216,19 @@ class Storage(object):
 
 		if ri:		# get a resource by its ri
 			# L.logDebug(f'Retrieving resource ri: {ri}')
-			resources = self.db.searchResources(ri = ri)
+			resources = self._postgres.searchResources(ri = ri)
 
 		elif srn:	# get a resource by its structured rn
 			# L.logDebug(f'Retrieving resource srn: {srn}')
 			# get the ri via the srn from the identifers table
-			resources = self.db.searchResources(srn = srn)
+			resources = self._postgres.searchResources(srn = srn)
 
 		elif csi:	# get the CSE by its csi
 			# L.logDebug(f'Retrieving resource csi: {csi}')
-			resources = self.db.searchResources(csi = csi)
+			resources = self._postgres.searchResources(csi = csi)
 		
 		elif aei:	# get an AE by its AE-ID
-			resources = self.db.searchResources(aei = aei)
+			resources = self._postgres.searchResources(aei = aei)
 
 		# L.logDebug(resources)
 		# return CSE.dispatcher.resourceFromDict(resources[0]) if len(resources) == 1 else None,
@@ -230,6 +240,7 @@ class Storage(object):
 		return Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'database inconsistency')
 
 
+	# NOTE: Ini hanya dipakai oleh CIN untuk ngelihat attribute 'disableRetrieval' dari parent CIN, which is Container
 	def retrieveResourceRaw(self, ri:str) -> Result:
 		"""	Retrieve a resource as a raw dictionary.
 
@@ -246,6 +257,8 @@ class Storage(object):
 		return Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'database inconsistency')
 
 
+	# TODO 1. Len of resources that have that type
+	# Dispatcher.countResources
 	def retrieveResourcesByType(self, ty:ResourceTypes) -> list[Document]:
 		""" Return all resources of a certain type. 
 
@@ -255,7 +268,34 @@ class Storage(object):
 				List of resource `Document`. 
 		"""
 		# L.logDebug(f'Retrieving all resources ty: {ty}')
-		return self.db.searchResources(ty = int(ty))
+		return self._postgres.searchResources(ty = int(ty))
+
+
+	def retrieveResourceBy(self, acpi: Optional[str] = None, 
+                           ty: Optional[int] = None, 
+                           filterResult: Optional[list] = None) -> list[Resource]:
+     
+		return  [ res	for each in self._postgres.retrieveResourceByAttribute(acpi = acpi, ty = ty, filterResult = filterResult)
+						if (res := Factory.resourceFromDict(each).resource)
+				]
+
+
+	def retrieveOldestResource(self, ty: int, pi:Optional[str] = None) -> Optional[JSON]:
+		return self._postgres.retrieveOldestResource(ty=ty, pi = pi)
+
+
+	def retrieveLatestResource(self, ty: int, pi:Optional[str] = None) -> Optional[JSON]:
+		return self._postgres.retrieveLatestResource(ty = ty, pi = pi)
+
+	def retrieveExpiredResource(self) -> list[Resource]:
+		""" Retrieve list of resource that already expired
+
+		Returns:
+			list[Resource]: list of expired resource
+		"""		
+		return  [ res	for each in self._postgres.retrieveExpiredResource()
+						if (res := Factory.resourceFromDict(each).resource)
+				]
 
 
 	def updateResource(self, resource:Resource) -> Result:
@@ -266,9 +306,16 @@ class Storage(object):
 			Return:
 				Result object.
 		"""
+		# TODO: Get resource update sql query here
 		# ri = resource.ri
 		# L.logDebug(f'Updating resource (ty: {resource.ty}, ri: {ri}, rn: {resource.rn})')
-		return Result(status = True, resource = self.db.updateResource(resource), rsc = ResponseStatusCode.updated)
+		# return Result(status = True, resource = self.db.updateResource(resource), rsc = ResponseStatusCode.updated)
+		return Result(status = True, resource = resource, rsc = ResponseStatusCode.updated)
+
+
+	def updateResourceBy(self, ri: str, data: JSON) -> Result:
+     	# TODO: Update resource by not re insert everything
+		pass
 
 
 	def deleteResource(self, resource:Resource) -> Result:
@@ -280,7 +327,7 @@ class Storage(object):
 				Result object.
 		"""
 		# L.logDebug(f'Removing resource (ty: {resource.ty}, ri: {ri}, rn: {resource.rn})'
-		self.db.deleteResource(resource)
+		# self.db.deleteResource(resource)
 		self.db.deleteIdentifier(resource)
 		return Result(status = True, rsc = ResponseStatusCode.deleted)
 
@@ -297,12 +344,11 @@ class Storage(object):
 			Returns:
 				Return a list of resources, or a list of raw resource dictionaries.
 		"""
-		docs = [ each for each in self.db.searchResources(pi = pi, ty = int(ty) if ty is not None else None)]
+		# TODO: Search resources already return list of resources in dict, so doesn't have to loop thourgh again like line 309
+  
+		docs = self._postgres.searchResources(pi = pi, ty = ( int(ty) if ty != None else ty))
 		return docs if raw else cast(List[Resource], list(map(lambda x: Factory.resourceFromDict(x).resource, docs)))
 		
-		# return 	[ res	for each in self.db.searchResources(pi = pi, ty = int(ty) if ty is not None else None)
-		# 				if (res := Factory.resourceFromDict(each).resource)
-		# 		]
 
 
 	def countDirectChildResources(self, pi:str, ty:Optional[ResourceTypes] = None) -> int:
@@ -314,16 +360,21 @@ class Storage(object):
 			Returns:
 				The number of child resources.
 		"""
-		return len(self.db.searchResources(pi = pi, ty = int(ty) if ty is not None else None))
+
+		return self._postgres.countResourcesBy(pi = pi, ty = int(ty) if ty is not None else None )
 
 
+	# TODO: add another query using count sql
 	def countResources(self) -> int:
 		"""	Count the overall number of CSE resources.
 
 			Returns:
 				The number of CSE resources.
 		"""
-		return self.db.countResources()
+		return self._postgres.countResources()
+
+	# NOTE ============ END OF RESOURCES
+
 
 
 	def identifier(self, ri:str) -> list[Document]:
@@ -347,7 +398,7 @@ class Storage(object):
 		"""
 		return self.db.searchIdentifiers(srn = srn)
 
-
+	# TODO
 	def searchByFragment(self, dct:dict, filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
 		""" Search and return all resources that match the given fragment dictionary/document.
 
@@ -357,22 +408,23 @@ class Storage(object):
 			Return:
 				List of `Resource` objects.
 		"""
-		return	[ res	for each in self.db.searchByFragment(dct) 
-						if (not filter or filter(each)) and (res := Factory.resourceFromDict(each).resource) # either there is no filter or the filter is called to test the resource
-				] 
+		return []
+		# return	[ res	for each in self.db.searchByFragment(dct) 
+		# 				if (not filter or filter(each)) and (res := Factory.resourceFromDict(each).resource) # either there is no filter or the filter is called to test the resource
+		# 		] 
 
 
-	def searchByFilter(self, filter:Callable[[JSON], bool]) -> list[Resource]:
-		"""	Return a list of resources that match the given filter, or an empty list.
+	# def searchByFilter(self, filter:Callable[[JSON], bool]) -> list[Resource]:
+	# 	"""	Return a list of resources that match the given filter, or an empty list.
 
-			Args:
-				filter: A callback to provide filter functionality.
-			Return:
-				List of `Resource` objects.
-		"""
-		return	[ res	for each in self.db.discoverResourcesByFilter(filter)
-						if (res := Factory.resourceFromDict(each).resource)
-				]
+	# 		Args:
+	# 			filter: A callback to provide filter functionality.
+	# 		Return:
+	# 			List of `Resource` objects.
+	# 	"""
+	# 	return	[ res	for each in self.db.discoverResourcesByFilter(filter)
+	# 					if (res := Factory.resourceFromDict(each).resource)
+	# 			]
 
 
 	#########################################################################
@@ -468,14 +520,14 @@ class TinyDBBinding(object):
 		L.isInfo and L.log(f'Cache Size: {self.cacheSize:d}')
 
 		# create transaction locks
-		self.lockResources				= Lock()
+		# self.lockResources				= Lock()
 		self.lockIdentifiers			= Lock()
 		self.lockSubscriptions			= Lock()
 		self.lockBatchNotifications		= Lock()
 		self.lockStatistics 			= Lock()
 
 		# file names
-		self.fileResources				= f'{self.path}/resources{postfix}.json'
+		# self.fileResources				= f'{self.path}/resources{postfix}.json'
 		self.fileIdentifiers			= f'{self.path}/identifiers{postfix}.json'
 		self.fileSubscriptions			= f'{self.path}/subscriptions{postfix}.json'
 		self.fileBatchNotifications		= f'{self.path}/batchNotifications{postfix}.json'
@@ -484,14 +536,14 @@ class TinyDBBinding(object):
 		# All databases/tables will use the smart query cache
 		if Configuration.get('db.inMemory'):
 			L.isInfo and L.log('DB in memory')
-			self.dbResources 			= TinyDB(storage = MemoryStorage)
+			# self.dbResources 			= TinyDB(storage = MemoryStorage) # TODO: Change this to postgres binding, implemented function in postgres binding, just call to the function directly
 			self.dbIdentifiers 			= TinyDB(storage = MemoryStorage)
 			self.dbSubscriptions 		= TinyDB(storage = MemoryStorage)
 			self.dbBatchNotifications	= TinyDB(storage = MemoryStorage)
 			self.dbStatistics			= TinyDB(storage = MemoryStorage)
 		else:
 			L.isInfo and L.log('DB in file system')
-			self.dbResources 			= TinyDB(self.fileResources)
+			# self.dbResources 			= TinyDB(self.fileResources)
 			self.dbIdentifiers 			= TinyDB(self.fileIdentifiers)
 			self.dbSubscriptions 		= TinyDB(self.fileSubscriptions)
 			self.dbBatchNotifications 	= TinyDB(self.fileBatchNotifications)
@@ -510,14 +562,14 @@ class TinyDBBinding(object):
 		
 		
 		# Open/Create tables
-		self.tabResources 				= self.dbResources.table('resources', cache_size = self.cacheSize)
+		# self.tabResources 				= self.dbResources.table('resources', cache_size = self.cacheSize)
 		self.tabIdentifiers 			= self.dbIdentifiers.table('identifiers', cache_size = self.cacheSize)
 		self.tabSubscriptions 			= self.dbSubscriptions.table('subsriptions', cache_size = self.cacheSize)
 		self.tabBatchNotifications 		= self.dbBatchNotifications.table('batchNotifications', cache_size = self.cacheSize)
 		self.tabStatistics 				= self.dbStatistics.table('statistics', cache_size = self.cacheSize)
 
 		# Create the Queries
-		self.resourceQuery 				= Query()
+		# self.resourceQuery 				= Query()
 		self.identifierQuery 			= Query()
 		self.subscriptionQuery			= Query()
 		self.batchNotificationQuery 	= Query()
@@ -525,8 +577,9 @@ class TinyDBBinding(object):
 
 	def closeDB(self) -> None:
 		L.isInfo and L.log('Closing DBs')
-		with self.lockResources:
-			self.dbResources.close()
+  
+		# with self.lockResources:
+		# 	self.dbResources.close()
 		with self.lockIdentifiers:
 			self.dbIdentifiers.close()
 		with self.lockSubscriptions:
@@ -539,7 +592,7 @@ class TinyDBBinding(object):
 
 	def purgeDB(self) -> None:
 		L.isInfo and L.log('Purging DBs')
-		self.tabResources.truncate()
+		# self.tabResources.truncate()
 		self.tabIdentifiers.truncate()
 		self.tabSubscriptions.truncate()
 		self.tabBatchNotifications.truncate()
@@ -547,7 +600,7 @@ class TinyDBBinding(object):
 	
 
 	def backupDB(self, dir:str) -> bool:
-		shutil.copy2(self.fileResources, dir)
+		# shutil.copy2(self.fileResources, dir)
 		shutil.copy2(self.fileIdentifiers, dir)
 		shutil.copy2(self.fileSubscriptions, dir)
 		shutil.copy2(self.fileBatchNotifications, dir)
@@ -560,98 +613,98 @@ class TinyDBBinding(object):
 	#
 
 
-	def insertResource(self, resource: Resource) -> None:
-		with self.lockResources:
-			self.tabResources.insert(resource.dict)
+	# def insertResource(self, resource: Resource) -> None:
+	# 	with self.lockResources:
+	# 		self.tabResources.insert(resource.dict)
 	
 
-	def upsertResource(self, resource: Resource) -> None:
-		#L.logDebug(resource)
-		with self.lockResources:
-			# Update existing or insert new when overwriting
-			self.tabResources.upsert(resource.dict, self.resourceQuery.ri == resource.ri)
+	# def upsertResource(self, resource: Resource) -> None:
+	# 	#L.logDebug(resource)
+	# 	with self.lockResources:
+	# 		# Update existing or insert new when overwriting
+	# 		self.tabResources.upsert(resource.dict, self.resourceQuery.ri == resource.ri)
 	
 
-	def updateResource(self, resource: Resource) -> Resource:
-		#L.logDebug(resource)
-		with self.lockResources:
-			ri = resource.ri
-			self.tabResources.update(resource.dict, self.resourceQuery.ri == ri)
-			# remove nullified fields from db and resource
-			for k in list(resource.dict):
-				if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
-					self.tabResources.update(delete(k), self.resourceQuery.ri == ri)	# type: ignore [no-untyped-call]
-					del resource.dict[k]
-			return resource
+	# def updateResource(self, resource: Resource) -> Resource:
+	# 	#L.logDebug(resource)
+	# 	with self.lockResources:
+	# 		ri = resource.ri
+	# 		self.tabResources.update(resource.dict, self.resourceQuery.ri == ri)
+	# 		# remove nullified fields from db and resource
+	# 		for k in list(resource.dict):
+	# 			if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
+	# 				self.tabResources.update(delete(k), self.resourceQuery.ri == ri)	# type: ignore [no-untyped-call]
+	# 				del resource.dict[k]
+	# 		return resource
 
 
-	def deleteResource(self, resource:Resource) -> None:
-		with self.lockResources:
-			self.tabResources.remove(self.resourceQuery.ri == resource.ri)	
+	# def deleteResource(self, resource:Resource) -> None:
+	# 	with self.lockResources:
+	# 		self.tabResources.remove(self.resourceQuery.ri == resource.ri)	
 	
 
-	def searchResources(self, ri:Optional[str] = None, 
-							  csi:Optional[str] = None, 
-							  srn:Optional[str] = None, 
-							  pi:Optional[str] = None, 
-							  ty:Optional[int] = None, 
-							  aei:Optional[str] = None) -> list[Document]:
-		if not srn:
-			with self.lockResources:
-				if ri:
-					return self.tabResources.search(self.resourceQuery.ri == ri)
-				elif csi:
-					return self.tabResources.search(self.resourceQuery.csi == csi)	
-				elif pi:
-					if ty is not None:	# ty is an int
-						return self.tabResources.search((self.resourceQuery.pi == pi) & (self.resourceQuery.ty == ty))
-					return self.tabResources.search(self.resourceQuery.pi == pi)
-				elif ty is not None:	# ty is an int
-					return self.tabResources.search(self.resourceQuery.ty == ty)	
-				elif aei:
-					return self.tabResources.search(self.resourceQuery.aei == aei)	
+	# def searchResources(self, ri:Optional[str] = None, 
+	# 						  csi:Optional[str] = None, 
+	# 						  srn:Optional[str] = None, 
+	# 						  pi:Optional[str] = None, 
+	# 						  ty:Optional[int] = None, 
+	# 						  aei:Optional[str] = None) -> list[Document]:
+	# 	if not srn:
+	# 		with self.lockResources:
+	# 			if ri:
+	# 				return self.tabResources.search(self.resourceQuery.ri == ri)
+	# 			elif csi:
+	# 				return self.tabResources.search(self.resourceQuery.csi == csi)	
+	# 			elif pi:
+	# 				if ty is not None:	# ty is an int
+	# 					return self.tabResources.search((self.resourceQuery.pi == pi) & (self.resourceQuery.ty == ty))
+	# 				return self.tabResources.search(self.resourceQuery.pi == pi)
+	# 			elif ty is not None:	# ty is an int
+	# 				return self.tabResources.search(self.resourceQuery.ty == ty)	
+	# 			elif aei:
+	# 				return self.tabResources.search(self.resourceQuery.aei == aei)	
 		
-		else:
-			# for SRN find the ri first and then try again recursively (outside the lock!!)
-			if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
-				return self.searchResources(ri=identifiers[0]['ri'])
+	# 	else:
+	# 		# for SRN find the ri first and then try again recursively (outside the lock!!)
+	# 		if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
+	# 			return self.searchResources(ri=identifiers[0]['ri'])
 
-		return []
-
-
-	def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
-		with self.lockResources:
-			return self.tabResources.search(func)	# type: ignore [arg-type]
+	# 	return []
 
 
-	def hasResource(self, ri:Optional[str] = None, 
-						  csi:Optional[str] = None, 
-						  srn:Optional[str] = None,
-						  ty:Optional[int] = None) -> bool:
-		if not srn:
-			with self.lockResources:
-				if ri:
-					return self.tabResources.contains(self.resourceQuery.ri == ri)	
-				elif csi :
-					return self.tabResources.contains(self.resourceQuery.csi == csi)
-				elif ty is not None:	# ty is an int
-					return self.tabResources.contains(self.resourceQuery.ty == ty)
-		else:
-			# find the ri first and then try again recursively
-			if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
-				return self.hasResource(ri = identifiers[0]['ri'])
-		return False
+	# def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
+	# 	with self.lockResources:
+	# 		return self.tabResources.search(func)	# type: ignore [arg-type]
 
 
-	def countResources(self) -> int:
-		with self.lockResources:
-			return len(self.tabResources)
+	# def hasResource(self, ri:Optional[str] = None, 
+	# 					  csi:Optional[str] = None, 
+	# 					  srn:Optional[str] = None,
+	# 					  ty:Optional[int] = None) -> bool:
+	# 	if not srn:
+	# 		with self.lockResources:
+	# 			if ri:
+	# 				return self.tabResources.contains(self.resourceQuery.ri == ri)	
+	# 			elif csi :
+	# 				return self.tabResources.contains(self.resourceQuery.csi == csi)
+	# 			elif ty is not None:	# ty is an int
+	# 				return self.tabResources.contains(self.resourceQuery.ty == ty)
+	# 	else:
+	# 		# find the ri first and then try again recursively
+	# 		if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
+	# 			return self.hasResource(ri = identifiers[0]['ri'])
+	# 	return False
 
 
-	def searchByFragment(self, dct:dict) -> list[Document]:
-		""" Search and return all resources that match the given dictionary/document. """
-		with self.lockResources:
-			return self.tabResources.search(self.resourceQuery.fragment(dct))
+	# def countResources(self) -> int:
+	# 	with self.lockResources:
+	# 		return len(self.tabResources)
+
+
+	# def searchByFragment(self, dct:dict) -> list[Document]:
+	# 	""" Search and return all resources that match the given dictionary/document. """
+	# 	with self.lockResources:
+	# 		return self.tabResources.search(self.resourceQuery.fragment(dct))
 
 	#
 	#	Identifiers
