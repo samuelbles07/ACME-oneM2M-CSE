@@ -4,7 +4,6 @@ from typing import Callable, cast, List, Optional, Tuple
 import os, shutil
 from threading import Lock
 import psycopg2
-from tinydb.table import Document
 
 from ..etc.Types import ResourceTypes, Result, ResponseStatusCode, JSON
 from ..etc import DateUtils
@@ -41,17 +40,20 @@ class PostgresBinding():
     #	Resources
     #
 
-    def insertResource(self, resource: Resource) -> None:
+    def insertResource(self, resource: Resource) -> bool:
         # self.tabResources.insert(resource.dict)
         query = resource.getInsertQuery()
         L.isDebug and L.logDebug(f'Query: {query}')
+        success = True
         with self._lockExecution:
             try:
                 with self._connection, self._connection.cursor() as cursor:
                     cursor.execute(query)
             except Exception as e:
                 L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
-                # L.isDebug and L.logDebug("Rollback connection")
+                success = False
+
+        return success
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -76,9 +78,19 @@ class PostgresBinding():
         pass
 
 
-    def deleteResource(self, resource:Resource) -> None:
-        # self.tabResources.remove(self.resourceQuery.ri == resource.ri)	
-        pass
+    def deleteResource(self, resource:Resource) -> bool:
+        query = f"DELETE FROM resources WHERE ri = '{resource.ri}';"
+        L.isDebug and L.logDebug(f'Query: {query}')
+        success = True
+        with self._lockExecution:
+            try:
+                with self._connection, self._connection.cursor() as cursor:
+                    cursor.execute(query)
+            except Exception as e:
+                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
+                success = False
+        
+        return success
     
 
     def searchResources(self, ri:Optional[str] = None, 
@@ -86,7 +98,7 @@ class PostgresBinding():
                               srn:Optional[str] = None, 
                               pi:Optional[str] = None, 
                               ty:Optional[int] = None, 
-                              aei:Optional[str] = None) -> list[Document]:
+                              aei:Optional[str] = None) -> list[JSON]:
 
         # TODO: For resource that have ontologyRef (eg. cnt and ae), in DB it's not in shortname instead ontologyref
 
@@ -222,9 +234,7 @@ class PostgresBinding():
                 if i == 0:
                     continue
                 query += f'OR ty = { int(t) } '
-                
-        print(query)
-        
+
         result = self._execQuery(query)
         return result[0] if len(result) > 0 else 0
 
@@ -239,7 +249,7 @@ class PostgresBinding():
         return result[0] if len(result) > 0 else 0
 
 
-    def searchByFragment(self, dct:dict) -> list[Document]:
+    def searchByFragment(self, dct:dict) -> list[JSON]: 
         """ Search and return all resources that match the given dictionary/document. """
         # return self.tabResources.search(self.resourceQuery.fragment(dct))
         pass
