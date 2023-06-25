@@ -13,7 +13,7 @@
 """
 
 from __future__ import annotations
-from typing import Callable, cast, List, Optional
+from typing import Callable, cast, List, Optional, Tuple
 
 import os, shutil
 from threading import Lock
@@ -249,7 +249,7 @@ class Storage(object):
 			Returns:
 				The resource dictionary is returned in a Result object in the *resource* attribute.
 		"""
-		resources = self.db.searchResources(ri = ri)
+		resources = self._postgres.searchResources(ri = ri)
 		if (l := len(resources)) == 1:
 			return Result(status = True, resource = resources[0])
 		elif l == 0:
@@ -257,8 +257,6 @@ class Storage(object):
 		return Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'database inconsistency')
 
 
-	# TODO 1. Len of resources that have that type
-	# Dispatcher.countResources
 	def retrieveResourcesByType(self, ty:ResourceTypes) -> list[Document]:
 		""" Return all resources of a certain type. 
 
@@ -364,14 +362,17 @@ class Storage(object):
 		return self._postgres.countResourcesBy(pi = pi, ty = int(ty) if ty is not None else None )
 
 
-	# TODO: add another query using count sql
-	def countResources(self) -> int:
+	def countResources(self, ty: Tuple[ResourceTypes, ...] = None) -> int:
 		"""	Count the overall number of CSE resources.
 
 			Returns:
 				The number of CSE resources.
 		"""
-		return self._postgres.countResources()
+		if not isinstance(ty, tuple) or ty == None:
+			L.logErr("Type of argument passed is not a tuple or None as required")
+			return 0
+
+		return self._postgres.countResources(ty)
 
 	# NOTE ============ END OF RESOURCES
 
