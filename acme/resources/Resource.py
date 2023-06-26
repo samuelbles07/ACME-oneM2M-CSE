@@ -990,8 +990,10 @@ class Resource(object):
 		"""
 		colResource = ""
 		colType = ""
-  
-		L.logDebug(self[self._modified])
+
+		# Sanity check
+		if self[self._modified] == None:
+			return None
 
 		# Build query for SET column for each modified attribute
 		for key in self[self._modified]:

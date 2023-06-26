@@ -66,6 +66,9 @@ class PostgresBinding():
 
     def updateResource(self, resource: Resource) -> bool:
         query = resource.getUpdateQuery()
+        if query == None:
+            return False
+        
         L.isDebug and L.logDebug(f'Query: {query}')
         success = True
         with self._lockExecution:
@@ -176,14 +179,9 @@ class PostgresBinding():
     
     
     def retrieveExpiredResource(self) -> list[JSON]:
-        # TODO: Need to return full resources with attributes from found resource type
-        # Somehow value of __type__ will be the table name. How to doit?
-        # query = "SELECT ri FROM resources WHERE et < now();"
-        # return self._execQuery(query)
-    
         query = f"""
                     SELECT row_to_json(results) FROM (
-                       SELECT * FROM resources WHERE et < now();
+                       SELECT * FROM resources WHERE et < now()
                     ) as results;
                     """
         baseResult = self._execQuery(query)
@@ -454,6 +452,8 @@ if __name__ == "__main__":
     # print( binding.retrieveResourceAttribute(acpi="acp1234") )
     
     # print( binding.retrieveExpiredResource() )
+    
+    print( binding.countResources((1,)) )
     
     binding.closeConnection()
     

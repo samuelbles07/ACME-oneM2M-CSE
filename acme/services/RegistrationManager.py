@@ -345,11 +345,10 @@ class RegistrationManager(object):
 		if self.expWorker:
 			self.expWorker.restart(self.checkExpirationsInterval)
 
-
 	def expirationDBMonitor(self) -> bool:
-		# L.isDebug and L.logDebug('Looking for expired resources')
-		now = DateUtils.getResourceDate()
-		resources = CSE.storage.searchByFilter(lambda r: (et := r.get('et'))  and et < now)
+		L.isDebug and L.logDebug('Looking for expired resources')
+		# now = DateUtils.getResourceDate()
+		resources = CSE.storage.retrieveExpiredResource()
 		for resource in resources:
 			# try to retrieve the resource first bc it might have been deleted as a child resource
 			# of an expired resource
