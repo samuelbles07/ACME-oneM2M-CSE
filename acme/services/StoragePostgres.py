@@ -196,7 +196,7 @@ class PostgresBinding():
             tyShortName = rtype.split(":")[1]
             
             # Retrieve data from target resource type table
-            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, base["index"])
+            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = {}".format(tyShortName, tyShortName, base["index"])
             resourceResult = self._execQuery(query)
             # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
             if len(resourceResult) > 0:
@@ -280,7 +280,7 @@ class PostgresBinding():
         tyShortName = rtype.split(":")[1]
         
         # Retrieve data from target resource type table
-        query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, baseResult[0]["index"])
+        query = "SELECT row_to_json({}) FROM {} WHERE resource_index = {}".format(tyShortName, tyShortName, baseResult[0]["index"])
         resourceResult = self._execQuery(query)
         
         result = []
@@ -331,7 +331,7 @@ class PostgresBinding():
             tyShortName = rtype.split(":")[1]
             
             # Retrieve data from target resource type table
-            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, base["index"])
+            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = {}".format(tyShortName, tyShortName, base["index"])
             resourceResult = self._execQuery(query)
             # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
             if len(resourceResult) > 0:
@@ -388,7 +388,7 @@ class PostgresBinding():
         tyShortName = rtype.split(":")[1]
         
         # Retrieve data from target resource type table
-        query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, baseResult[0]["index"])
+        query = "SELECT row_to_json({}) FROM {} WHERE resource_index = {}".format(tyShortName, tyShortName, baseResult[0]["index"])
         resourceResult = self._execQuery(query)
         
         result = []
@@ -416,7 +416,7 @@ class PostgresBinding():
             tyShortName = rtype.split(":")[1]
             
             # Retrieve data from target resource type table
-            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = '{}'".format(tyShortName, tyShortName, base["index"])
+            query = "SELECT row_to_json({}) FROM {} WHERE resource_index = {}".format(tyShortName, tyShortName, base["index"])
             resourceResult = self._execQuery(query)
             # If query result is not empty, append to result. TODO: if it empty, somehow it is inconsistent. Maybe delete it from resource table.
             if len(resourceResult) > 0:
