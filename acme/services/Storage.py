@@ -304,11 +304,15 @@ class Storage(object):
 			Return:
 				Result object.
 		"""
-		# TODO: Get resource update sql query here
-		# ri = resource.ri
-		# L.logDebug(f'Updating resource (ty: {resource.ty}, ri: {ri}, rn: {resource.rn})')
-		# return Result(status = True, resource = self.db.updateResource(resource), rsc = ResponseStatusCode.updated)
-		return Result(status = True, resource = resource, rsc = ResponseStatusCode.updated)
+		# L.logDebug(f'Updating resource (ty: {resource.ty}, ri: {resource.ri}, rn: {resource.rn})')
+		if self._postgres.updateResource(resource):
+			# remove nullified fields from resource
+			for k in list(resource.dict):
+				if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
+					del resource.dict[k]
+			return Result(status = True, resource = resource, rsc = ResponseStatusCode.updated)
+		else:
+			return Result(status = False, resource = resource, rsc = ResponseStatusCode.UNKNOWN)
 
 
 	def updateResourceBy(self, ri: str, data: JSON) -> Result:

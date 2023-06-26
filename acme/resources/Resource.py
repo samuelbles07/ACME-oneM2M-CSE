@@ -84,6 +84,10 @@ class Resource(object):
 							_isInstantiated, _originator, _announcedTo, _modified, _remoteID, _rvi, _index ]
 	"""	List of internal attributes and which do not belong to the oneM2M resource attributes """
 
+	universalCommonAttributes = [ "ty", "ri", "rn", "pi", "ct", "lt", "acpi", "et", "st", "at", "aa", "lbl",
+                              	 "esi", "daci", "cr" ]
+	""" List of universal and common attributes of resources in shortname"""
+
 	def __init__(self, 
 				 ty:ResourceTypes, 
 				 dct:JSON, 
@@ -979,14 +983,47 @@ class Resource(object):
 
 
 	def getUpdateQuery(self) -> Optional[str]:
-		"""Get update SQL query for specific resource type. If Resource base class method is called, then resource not supported yet
+		"""Get update SQL query
 
-		   Supported resource will implemented this function
-		   
 		Returns:
 			Optional[str]: SQL update command query for respective resource type
 		"""
-		return None
+		colResource = ""
+		colType = ""
+  
+		L.logDebug(self[self._modified])
+
+		# Build query for SET column for each modified attribute
+		for key in self[self._modified]:
+			if self[key] == None:
+				continue
+			if key in self.universalCommonAttributes:
+				colResource = colResource + f",{key}={self.validateAttributeValue(self[key])}"
+			else:
+				colType = colType + f",{key}={self.validateAttributeValue(self[key])}"
+		# Remove first comma from string
+		colResource = colResource[1:]
+
+		# Build query by checking if there are attributes that not in resource table (universal/common attributes)
+		query = ""
+		if colType == "":
+			query = f"UPDATE resources SET {colResource} WHERE ri = '{self.ri}'"
+		elif colType != "":
+			colType = colType[1:]
+			tyShortName = self.tpe.split(":")[1]
+			query = f"""
+					WITH resource_table AS (
+						UPDATE resources SET {colResource} WHERE ri = { self.validateAttributeValue(self.ri) }
+						RETURNING index
+					)
+					UPDATE {tyShortName} SET {colType} FROM resource_table WHERE {tyShortName}.resource_index = resource_table.index;
+					"""
+		else:
+			L.isDebug and L.logDebug("No data in self._modified")
+			return None
+   
+		return query
+     
 
 	#########################################################################
 	#

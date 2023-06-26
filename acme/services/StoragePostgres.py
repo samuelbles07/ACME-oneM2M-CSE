@@ -41,7 +41,6 @@ class PostgresBinding():
     #
 
     def insertResource(self, resource: Resource) -> bool:
-        # self.tabResources.insert(resource.dict)
         query = resource.getInsertQuery()
         L.isDebug and L.logDebug(f'Query: {query}')
         success = True
@@ -65,17 +64,19 @@ class PostgresBinding():
         #     pass
     
 
-    def updateResource(self, resource: Resource) -> Resource:
-        #L.logDebug(resource)
-        # ri = resource.ri
-        # self.tabResources.update(resource.dict, self.resourceQuery.ri == ri)
-        # # remove nullified fields from db and resource
-        # for k in list(resource.dict):
-        # 	if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
-        # 		self.tabResources.update(delete(k), self.resourceQuery.ri == ri)	# type: ignore [no-untyped-call]
-        # 		del resource.dict[k]
-        # return resource
-        pass
+    def updateResource(self, resource: Resource) -> bool:
+        query = resource.getUpdateQuery()
+        L.isDebug and L.logDebug(f'Query: {query}')
+        success = True
+        with self._lockExecution:
+            try:
+                with self._connection, self._connection.cursor() as cursor:
+                    cursor.execute(query)
+            except Exception as e:
+                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
+                success = False
+
+        return success
 
 
     def deleteResource(self, resource:Resource) -> bool:
