@@ -62,7 +62,7 @@ def isUniqueRI(ri:str) -> bool:
 		Return:
 			Boolean indicating the result of the test
 	"""
-	return not CSE.storage.identifier(ri)
+	return not CSE.storage.hasResource(ri)
 
 
 def uniqueRN(prefix:str) -> str:

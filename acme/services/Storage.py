@@ -119,8 +119,8 @@ class Storage(object):
 		try:
 			# dbFile = 'resources'
 			# self.hasResource('_')
-			dbFile = 'identifiers'
-			self.structuredIdentifier('_')
+			# dbFile = 'identifiers'
+			# self.structuredIdentifier('_')
 			dbFile = 'subscription'
 			self.getSubscription('_')
 			dbFile = 'batch notification'
@@ -177,8 +177,6 @@ class Storage(object):
 			else:
 				return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logWarn(f'Resource already exists (Skipping): {resource} ri: {ri} srn:{srn}'))
 
-		# Add path to identifiers db
-		self.db.insertIdentifier(resource, ri, srn)
 		return Result(status = True, rsc = ResponseStatusCode.created)
 
 
@@ -193,7 +191,13 @@ class Storage(object):
 			Returns:
 				True when a resource with the ID or name exists.
 		"""
-		return (ri is not None and self._postgres.hasResource(ri = ri)) or (srn is not None and self._postgres.hasResource(srn = srn))
+		exist = False
+		if ri:
+			exist = self._postgres.hasResource(ri = ri)
+		elif srn:
+			exist = self._postgres.hasResource(srn = srn)
+
+		return exist
 
 
 	def retrieveResource(self,	ri:Optional[str] = None, 
@@ -330,7 +334,6 @@ class Storage(object):
 		"""
 		# L.logDebug(f'Removing resource (ty: {resource.ty}, ri: {resource.ri}, rn: {resource.rn}')
 		self._postgres.deleteResource(resource)
-		self.db.deleteIdentifier(resource)
 		return Result(status = True, rsc = ResponseStatusCode.deleted)
 
 
@@ -377,11 +380,8 @@ class Storage(object):
 
 		return self._postgres.countResources(ty)
 
-	# NOTE ============ END OF RESOURCES
 
-
-
-	def identifier(self, ri:str) -> list[Document]:
+	def identifier(self, ri:str) -> list[JSON]:
 		"""	Search for the resource identifer mapping with the given unstructured resource ID.
 
 			Args:
@@ -389,10 +389,10 @@ class Storage(object):
 			Return:
 				List of found resources identifier mappings, or an empty list.
 		"""
-		return self.db.searchIdentifiers(ri = ri)
+		return self._postgres.searchIdentifiers(ri = ri)
 
 
-	def structuredIdentifier(self, srn:str) -> list[Document]:
+	def structuredIdentifier(self, srn:str) -> list[JSON]:
 		"""	Search for the resource identifer mapping with the given structured resource ID.
 
 			Args:
@@ -400,7 +400,7 @@ class Storage(object):
 			Return:
 				List of found resources identifier mappings, or an empty list.
 		"""
-		return self.db.searchIdentifiers(srn = srn)
+		return self._postgres.searchIdentifiers(srn = srn)
 
 	# TODO
 	def searchByFragment(self, dct:dict, filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
@@ -525,14 +525,14 @@ class TinyDBBinding(object):
 
 		# create transaction locks
 		# self.lockResources				= Lock()
-		self.lockIdentifiers			= Lock()
+		# self.lockIdentifiers			= Lock()
 		self.lockSubscriptions			= Lock()
 		self.lockBatchNotifications		= Lock()
 		self.lockStatistics 			= Lock()
 
 		# file names
 		# self.fileResources				= f'{self.path}/resources{postfix}.json'
-		self.fileIdentifiers			= f'{self.path}/identifiers{postfix}.json'
+		# self.fileIdentifiers			= f'{self.path}/identifiers{postfix}.json'
 		self.fileSubscriptions			= f'{self.path}/subscriptions{postfix}.json'
 		self.fileBatchNotifications		= f'{self.path}/batchNotifications{postfix}.json'
 		self.fileStatistics				= f'{self.path}/statistics{postfix}.json'
@@ -541,14 +541,14 @@ class TinyDBBinding(object):
 		if Configuration.get('db.inMemory'):
 			L.isInfo and L.log('DB in memory')
 			# self.dbResources 			= TinyDB(storage = MemoryStorage) # TODO: Change this to postgres binding, implemented function in postgres binding, just call to the function directly
-			self.dbIdentifiers 			= TinyDB(storage = MemoryStorage)
+			# self.dbIdentifiers 			= TinyDB(storage = MemoryStorage)
 			self.dbSubscriptions 		= TinyDB(storage = MemoryStorage)
 			self.dbBatchNotifications	= TinyDB(storage = MemoryStorage)
 			self.dbStatistics			= TinyDB(storage = MemoryStorage)
 		else:
 			L.isInfo and L.log('DB in file system')
 			# self.dbResources 			= TinyDB(self.fileResources)
-			self.dbIdentifiers 			= TinyDB(self.fileIdentifiers)
+			# self.dbIdentifiers 			= TinyDB(self.fileIdentifiers)
 			self.dbSubscriptions 		= TinyDB(self.fileSubscriptions)
 			self.dbBatchNotifications 	= TinyDB(self.fileBatchNotifications)
 			self.dbStatistics 			= TinyDB(self.fileStatistics)
@@ -567,14 +567,14 @@ class TinyDBBinding(object):
 		
 		# Open/Create tables
 		# self.tabResources 				= self.dbResources.table('resources', cache_size = self.cacheSize)
-		self.tabIdentifiers 			= self.dbIdentifiers.table('identifiers', cache_size = self.cacheSize)
+		# self.tabIdentifiers 			= self.dbIdentifiers.table('identifiers', cache_size = self.cacheSize)
 		self.tabSubscriptions 			= self.dbSubscriptions.table('subsriptions', cache_size = self.cacheSize)
 		self.tabBatchNotifications 		= self.dbBatchNotifications.table('batchNotifications', cache_size = self.cacheSize)
 		self.tabStatistics 				= self.dbStatistics.table('statistics', cache_size = self.cacheSize)
 
 		# Create the Queries
 		# self.resourceQuery 				= Query()
-		self.identifierQuery 			= Query()
+		# self.identifierQuery 			= Query()
 		self.subscriptionQuery			= Query()
 		self.batchNotificationQuery 	= Query()
 
@@ -584,8 +584,8 @@ class TinyDBBinding(object):
   
 		# with self.lockResources:
 		# 	self.dbResources.close()
-		with self.lockIdentifiers:
-			self.dbIdentifiers.close()
+		# with self.lockIdentifiers:
+		# 	self.dbIdentifiers.close()
 		with self.lockSubscriptions:
 			self.dbSubscriptions.close()
 		with self.lockBatchNotifications:
@@ -597,7 +597,7 @@ class TinyDBBinding(object):
 	def purgeDB(self) -> None:
 		L.isInfo and L.log('Purging DBs')
 		# self.tabResources.truncate()
-		self.tabIdentifiers.truncate()
+		# self.tabIdentifiers.truncate()
 		self.tabSubscriptions.truncate()
 		self.tabBatchNotifications.truncate()
 		self.tabStatistics.truncate()
@@ -605,7 +605,7 @@ class TinyDBBinding(object):
 
 	def backupDB(self, dir:str) -> bool:
 		# shutil.copy2(self.fileResources, dir)
-		shutil.copy2(self.fileIdentifiers, dir)
+		# shutil.copy2(self.fileIdentifiers, dir)
 		shutil.copy2(self.fileSubscriptions, dir)
 		shutil.copy2(self.fileBatchNotifications, dir)
 		shutil.copy2(self.fileStatistics, dir)
@@ -715,42 +715,42 @@ class TinyDBBinding(object):
 	#
 
 
-	def insertIdentifier(self, resource:Resource, ri:str, srn:str) -> None:
-		# L.isDebug and L.logDebug({'ri' : ri, 'rn' : resource.rn, 'srn' : srn, 'ty' : resource.ty})	
-		with self.lockIdentifiers:
-			self.tabIdentifiers.upsert(
-				{	'ri' : ri, 
-					'rn' : resource.rn, 
-					'srn' : srn,
-					'ty' : resource.ty 
-				}, 
-				self.identifierQuery.ri == ri)
+	# def insertIdentifier(self, resource:Resource, ri:str, srn:str) -> None:
+	# 	# L.isDebug and L.logDebug({'ri' : ri, 'rn' : resource.rn, 'srn' : srn, 'ty' : resource.ty})	
+	# 	with self.lockIdentifiers:
+	# 		self.tabIdentifiers.upsert(
+	# 			{	'ri' : ri, 
+	# 				'rn' : resource.rn, 
+	# 				'srn' : srn,
+	# 				'ty' : resource.ty 
+	# 			}, 
+	# 			self.identifierQuery.ri == ri)
 
 
-	def deleteIdentifier(self, resource:Resource) -> None:
-		with self.lockIdentifiers:
-			self.tabIdentifiers.remove(self.identifierQuery.ri == resource.ri)
+	# def deleteIdentifier(self, resource:Resource) -> None:
+	# 	with self.lockIdentifiers:
+	# 		self.tabIdentifiers.remove(self.identifierQuery.ri == resource.ri)
 
 
-	def searchIdentifiers(self, ri:Optional[str] = None, 
-								srn:Optional[str] = None) -> list[Document]:
-		"""	Search for an resource ID OR for a structured name in the identifiers DB.
+	# def searchIdentifiers(self, ri:Optional[str] = None, 
+	# 							srn:Optional[str] = None) -> list[Document]:
+	# 	"""	Search for an resource ID OR for a structured name in the identifiers DB.
 
-			Either *ri* or *srn* shall be given. If both are given then *srn*
-			is taken.
+	# 		Either *ri* or *srn* shall be given. If both are given then *srn*
+	# 		is taken.
 		
-			Args:
-				ri: Resource ID to search for.
-				srn: Structured path to search for.
-			Return:
-				A list of found identifier documents (see `insertIdentifier`), or an empty list if not found.
-		 """
-		with self.lockIdentifiers:
-			if srn:
-				return self.tabIdentifiers.search(self.identifierQuery.srn == srn)
-			elif ri:
-				return self.tabIdentifiers.search(self.identifierQuery.ri == ri)
-			return []
+	# 		Args:
+	# 			ri: Resource ID to search for.
+	# 			srn: Structured path to search for.
+	# 		Return:
+	# 			A list of found identifier documents (see `insertIdentifier`), or an empty list if not found.
+	# 	 """
+	# 	with self.lockIdentifiers:
+	# 		if srn:
+	# 			return self.tabIdentifiers.search(self.identifierQuery.srn == srn)
+	# 		elif ri:
+	# 			return self.tabIdentifiers.search(self.identifierQuery.ri == ri)
+	# 		return []
 
 
 	#

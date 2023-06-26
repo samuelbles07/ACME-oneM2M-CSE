@@ -252,6 +252,34 @@ class PostgresBinding():
         """ Search and return all resources that match the given dictionary/document. """
         # return self.tabResources.search(self.resourceQuery.fragment(dct))
         pass
+    
+    
+    def searchIdentifiers(self, ri:Optional[str] = None, 
+								srn:Optional[str] = None) -> list[JSON]:
+        """	Search for an resource ID OR for a structured name
+
+			Either *ri* or *srn* shall be given. If both are given then *srn*
+			is taken.
+		
+			Args:
+				ri: Resource ID to search for.
+				srn: Structured path to search for.
+			Return:
+				A list of found identifier data (ri, rn, srn, ty)
+		 """
+        query = "SELECT row_to_json(results) FROM ( SELECT ri, rn, __srn__, ty FROM resources WHERE {}) as results;"
+        if srn:
+            query = query.format(f"__srn__='{srn}'")
+        elif ri:
+            query = query.format(f"ri='{ri}'")
+        result = self._execQuery(query)
+        
+        # Loop through result and replace keyname to without internal prefix (__key__)
+        for i, _ in enumerate(result):
+            result[i]["srn"] = result[i]["__srn__"]
+            del result[i]["__srn__"]
+        
+        return result
 
 
     def _selectByRI(self, ri: str) -> list[dict]:
