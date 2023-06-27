@@ -88,11 +88,11 @@ class Tables:
                 (
                     index SERIAL PRIMARY KEY,
                     resource_index INTEGER,
-                    mni INTEGER NOT NULL,
-                    mbi INTEGER NOT NULL,
+                    mni INTEGER,
+                    mbi INTEGER,
                     mia INTEGER,
                     cni INTEGER NOT NULL,
-                    cbs INTEGER,
+                    cbs INTEGER NOT NULL,
                     li VARCHAR(255),
                     ontologyRef VARCHAR(255),
                     disr BOOLEAN,
@@ -238,6 +238,8 @@ class Tables:
                     obis JSONB,
                     obps JSONB,
                     dc VARCHAR(255),
+                    mgs VARCHAR(255),
+                    cmlk JSONB,
                     vr VARCHAR(255) NOT NULL,
                     fwn VARCHAR(255) NOT NULL,
                     url VARCHAR(255) NOT NULL,
@@ -258,6 +260,8 @@ class Tables:
                     obis JSONB,
                     obps JSONB,
                     dc VARCHAR(255),
+                    mgs VARCHAR(255),
+                    cmlk JSONB,
                     dlb VARCHAR NOT NULL,
                     man VARCHAR(255) NOT NULL,
                     mfdl VARCHAR(255),
@@ -303,40 +307,40 @@ class Tables:
 if __name__ == "__main__":
 
     # Connect to your postgres DB
-    conn = psycopg2.connect(database="acme-cse", host="localhost", user="postgres", password="musang")
+    conn = psycopg2.connect(database="acme-cse-test", host="localhost", user="postgres", password="musang")
     # Open a cursor to perform database operations
     cur = conn.cursor()
 
-    # Execute queries and commit
-    cur.execute(Tables.queryResources())
-    conn.commit()
+    # # Execute queries and commit
+    # cur.execute(Tables.queryResources())
+    # conn.commit()
 
-    cur.execute(Tables.queryACP())
-    conn.commit()
+    # cur.execute(Tables.queryACP())
+    # conn.commit()
 
-    cur.execute(Tables.queryAE())
-    conn.commit()
+    # cur.execute(Tables.queryAE())
+    # conn.commit()
 
-    cur.execute(Tables.queryCNT())
-    conn.commit()
+    # cur.execute(Tables.queryCNT())
+    # conn.commit()
     
-    cur.execute(Tables.queryCIN())
-    conn.commit()
+    # cur.execute(Tables.queryCIN())
+    # conn.commit()
 
-    cur.execute(Tables.queryCB())
-    conn.commit()
+    # cur.execute(Tables.queryCB())
+    # conn.commit()
 
-    cur.execute(Tables.queryCSR())
-    conn.commit()
+    # cur.execute(Tables.queryCSR())
+    # conn.commit()
     
-    cur.execute(Tables.queryGRP())
-    conn.commit()
+    # cur.execute(Tables.queryGRP())
+    # conn.commit()
 
-    cur.execute(Tables.querySUB())
-    conn.commit()
+    # cur.execute(Tables.querySUB())
+    # conn.commit()
 
-    cur.execute(Tables.queryNOD())
-    conn.commit()
+    # cur.execute(Tables.queryNOD())
+    # conn.commit()
 
     cur.execute(Tables.queryFWR())
     conn.commit()
@@ -344,8 +348,8 @@ if __name__ == "__main__":
     cur.execute(Tables.queryDVI())
     conn.commit()
 
-    cur.execute(Tables.queryREQ())
-    conn.commit()
+    # cur.execute(Tables.queryREQ())
+    # conn.commit()
 
     # cur.execute("SELECT row_to_json(resources) FROM resources WHERE ty = 1;")
     # rows = cur.fetchall()
