@@ -212,7 +212,7 @@ class RegistrationManager(object):
 			Return
 				True if the originator is registered with the CSE.
 		"""
-		return len(CSE.storage.searchByFragment({'aei' : originator})) > 0
+		return CSE.storage.retrieveResource(aei = originator).status
 
 	#########################################################################
 
