@@ -136,6 +136,8 @@ class Tables:
                     ncp VARCHAR(255),
                     csz JSONB,
                     srv JSONB NOT NULL,
+                    srt JSONB,
+                    rr BOOLEAN,
                     CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
