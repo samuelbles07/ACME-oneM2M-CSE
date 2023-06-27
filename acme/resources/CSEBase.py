@@ -145,8 +145,8 @@ class CSEBase(AnnounceableResource):
 
 	def getInsertQuery(self) -> Optional[str]:
 		query = """
-					INSERT INTO public.cb(resource_index, cst, csi, poa, nl, ncp, csz, srv)
-					SELECT rt.index, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+					INSERT INTO public.cb(resource_index, cst, csi, poa, nl, ncp, csz, srv, srt, rr)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
 				"""
 
 		return self._getInsertGeneralQuery() + query.format(
@@ -156,7 +156,9 @@ class CSEBase(AnnounceableResource):
 			self.validateAttributeValue(self['nl']),
 			self.validateAttributeValue(self['ncp']),
 			self.validateAttributeValue(self['csz']),
-			self.validateAttributeValue(self['srv'])
+			self.validateAttributeValue(self['srv']),
+			self.validateAttributeValue(self['srt']),
+			self.validateAttributeValue(self['rr'])
 		)
 
 		
