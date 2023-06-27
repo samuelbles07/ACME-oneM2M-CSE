@@ -172,9 +172,8 @@ class Storage(object):
 			self._postgres.upsertResource(resource)
 		else: 
 			if not self.hasResource(ri, srn):	# Only when not resource does not exist yet
-				# self.db.insertResource(resource)
 				if not self._postgres.insertResource(resource):
-					Result(status = False, rsc = ResponseStatusCode.notImplemented)
+					return Result(status = False, rsc = ResponseStatusCode.UNKNOWN)
 			else:
 				return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logWarn(f'Resource already exists (Skipping): {resource} ri: {ri} srn:{srn}'))
 
