@@ -272,6 +272,9 @@ class PostgresBinding():
             query = query.format(f"__srn__='{srn}'")
         elif ri:
             query = query.format(f"ri='{ri}'")
+        else:
+            L.isDebug and L.logDebug("postgres.searchIdentifiers() parameter both not provided")
+            return []
         result = self._execQuery(query)
         
         # Loop through result and replace keyname to without internal prefix (__key__)
