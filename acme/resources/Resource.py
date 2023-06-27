@@ -118,6 +118,8 @@ class Resource(object):
 		"""	Flag set during creation of a resource instance whether a resource type inherits the `resources.ACP.ACP` from its parent resource. """
 		self.dict 		= {}
 		"""	Dictionary for public and internal resource attributes. """
+		self.modifiedDict = {}
+		""" Modified dictionary for public and internal resource attributes"""
 		self.isImported	= False
 		"""	Flag set during creation of a resource instance whether a resource is imported, which disables some validation checks. """
 		self._originalDict = {}
@@ -234,7 +236,7 @@ class Resource(object):
 		# validate the resource logic
 		if not (res := self.validate(originator, create = True, parentResource = parentResource)).status:
 			return res
-		self.dbUpdate()
+		self.dbUpdate() # TODO: Why need to call update here?
 		
 		# Various ACPI handling
 		# ACPI: Check <ACP> existence and convert <ACP> references to CSE relative unstructured
@@ -355,6 +357,7 @@ class Resource(object):
 
 		# store last modified attributes
 		self[self._modified] = Utils.resourceDiff(dictOrg, self.dict, updatedAttributes)
+		self.modifiedDict = deepcopy(self[self._modified])
 
 		# Check subscriptions
 		CSE.notification.checkSubscriptions(self, NotificationEventType.resourceUpdate, modifiedAttributes = self[self._modified])
@@ -369,6 +372,14 @@ class Resource(object):
 		parent.childUpdated(self, updatedAttributes, originator)
 
 		return Result.successResult()
+
+
+	def checkAttributeUpdate(self):
+		"""Set _modified internal attribute when there's a difference from old and new attribute
+			Retrieve old attribute from DB
+		"""	
+		result = CSE.storage.retrieveResourceRaw(self.ri)
+		self.modifiedDict = Utils.resourceDiff(old=result.resource, new=self.dict, ignoreInternal=False)
 
 
 	def willBeUpdated(self, dct:Optional[JSON] = None, 
@@ -936,7 +947,6 @@ class Resource(object):
 		Returns:
 			str: Resources table insert query
 		"""
-
 		query = """
 				WITH resource_table AS (
 					INSERT INTO public.resources(
@@ -990,14 +1000,14 @@ class Resource(object):
 		colType = ""
 
 		# Sanity check
-		if self[self._modified] == None:
+		if not self.modifiedDict:
 			return None
 
 		# Build query for SET column for each modified attribute
-		for key in self[self._modified]:
+		for key in self.modifiedDict:
 			if self[key] == None:
 				continue
-			if key in self.universalCommonAttributes:
+			if (key in self.universalCommonAttributes) or (key in self.internalAttributes):
 				colResource = colResource + f",{key}={self.validateAttributeValue(self[key])}"
 			else:
 				colType = colType + f",{key}={self.validateAttributeValue(self[key])}"
@@ -1019,7 +1029,7 @@ class Resource(object):
 					UPDATE {tyShortName} SET {colType} FROM resource_table WHERE {tyShortName}.resource_index = resource_table.index;
 					"""
 		else:
-			L.isDebug and L.logDebug("No data in self._modified")
+			L.isDebug and L.logDebug("No data in modifiedDict")
 			return None
    
 		return query

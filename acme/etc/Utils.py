@@ -819,20 +819,21 @@ def removeNoneValuesFromDict(jsn:JSON, allowedNull:Optional[list[str]] = []) -> 
 
 
 
-def resourceDiff(old:JSON, new:JSON, modifiers:Optional[JSON] = None) -> JSON:
+def resourceDiff(old:JSON, new:JSON, modifiers:Optional[JSON] = None, ignoreInternal = True) -> JSON:
 	"""	Compare an old and a new resource. A comparison happens for keywords and values.
-		Attributes which names start and end with "__" (ie internal attributes) are ignored.
+		Attributes which names start and end with "__" (ie internal attributes) are ignored if ignoreInternal set to True.
 
 		Args:
 			old: Old resource dictionary to compare.
 			new: New resource dictionary to compare.
 			modifiers: A dictionary. If this dictionary is given then it contains the changes that let from old to new. This is used to determine if attributes were just updated with the same values.
+			ignoreInternal: Ignore internal attribute from difference check
 		Return:	
 			Return a dictionary of identified changes.
 	"""
 	res = {}
 	for k, v in new.items():
-		if k.startswith('__'):	# ignore all internal attributes
+		if ignoreInternal and k.startswith('__'):	# ignore all internal attributes if ignoreInternal set to True
 			continue
 		if not k in old:		# Key not in old
 			res[k] = v
