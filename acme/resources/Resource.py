@@ -919,12 +919,10 @@ class Resource(object):
 			return "NULL"
 
 		# Do not at single quotes if attribute value is Int
-		if type(attributeValue) == int:
+		if isinstance(attributeValue, int) or isinstance(attributeValue, bool):
 			return attributeValue
-		elif type(attributeValue) == list or type(attributeValue) == dict:
+		elif isinstance(attributeValue, list) or isinstance(attributeValue, dict):
 			attributeValue = json.dumps(attributeValue) # stringify it first to support quote on string
-			
-  
   
 		# Add single quotes to attribute value
 		return f"'{attributeValue}'"
