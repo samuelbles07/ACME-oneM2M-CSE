@@ -190,15 +190,9 @@ class Storage(object):
 				ri: Optional resource ID.
 				srn: Optional structured resource name.
 			Returns:
-				True when a resource with the ID or name exists.
+				True when a resource with the ID or structured resource name exists.
 		"""
-		exist = False
-		if ri:
-			exist = self._postgres.hasResource(ri = ri)
-		elif srn:
-			exist = self._postgres.hasResource(srn = srn)
-
-		return exist
+		return (ri is not None and self._postgres.hasResource(ri = ri)) or (srn is not None and self._postgres.hasResource(srn = srn))
 
 
 	def retrieveResource(self,	ri:Optional[str] = None, 
