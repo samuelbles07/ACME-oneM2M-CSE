@@ -35,7 +35,13 @@ class Tables:
                     __originator__ VARCHAR,
                     __srn__ VARCHAR,
                     __announcedTo__ JSONB,
-                    __rvi__ VARCHAR(255)
+                    __rvi__ VARCHAR(255),
+                    __node__ VARCHAR(255),
+                    __imported__ BOOLEAN,
+                    __isInstantiated__ BOOLEAN,
+                    __remoteID__ VARCHAR,
+                    __modified__ JSONB,
+                    __createdInternally__ VARCHAR
                 );
                 """
 
@@ -311,36 +317,36 @@ if __name__ == "__main__":
     # Open a cursor to perform database operations
     cur = conn.cursor()
 
-    # # Execute queries and commit
-    # cur.execute(Tables.queryResources())
-    # conn.commit()
+    # Execute queries and commit
+    cur.execute(Tables.queryResources())
+    conn.commit()
 
-    # cur.execute(Tables.queryACP())
-    # conn.commit()
+    cur.execute(Tables.queryACP())
+    conn.commit()
 
-    # cur.execute(Tables.queryAE())
-    # conn.commit()
+    cur.execute(Tables.queryAE())
+    conn.commit()
 
-    # cur.execute(Tables.queryCNT())
-    # conn.commit()
+    cur.execute(Tables.queryCNT())
+    conn.commit()
     
-    # cur.execute(Tables.queryCIN())
-    # conn.commit()
+    cur.execute(Tables.queryCIN())
+    conn.commit()
 
-    # cur.execute(Tables.queryCB())
-    # conn.commit()
+    cur.execute(Tables.queryCB())
+    conn.commit()
 
-    # cur.execute(Tables.queryCSR())
-    # conn.commit()
+    cur.execute(Tables.queryCSR())
+    conn.commit()
     
-    # cur.execute(Tables.queryGRP())
-    # conn.commit()
+    cur.execute(Tables.queryGRP())
+    conn.commit()
 
-    # cur.execute(Tables.querySUB())
-    # conn.commit()
+    cur.execute(Tables.querySUB())
+    conn.commit()
 
-    # cur.execute(Tables.queryNOD())
-    # conn.commit()
+    cur.execute(Tables.queryNOD())
+    conn.commit()
 
     cur.execute(Tables.queryFWR())
     conn.commit()
