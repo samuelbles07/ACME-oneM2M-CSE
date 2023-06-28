@@ -31,6 +31,7 @@ class Tables:
                     esi VARCHAR(255),
                     daci JSONB,
                     cr VARCHAR(255),
+                    cstn VARCHAR(255),
                     __rtype__ VARCHAR NOT NULL,
                     __originator__ VARCHAR,
                     __srn__ VARCHAR,

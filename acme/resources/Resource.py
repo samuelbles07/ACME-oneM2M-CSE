@@ -88,7 +88,7 @@ class Resource(object):
 	"""	List of internal attributes and which do not belong to the oneM2M resource attributes """
 
 	universalCommonAttributes = [ "ty", "ri", "rn", "pi", "ct", "lt", "acpi", "et", "st", "at", "aa", "lbl",
-                              	 "esi", "daci", "cr" ]
+                              	 "esi", "daci", "cr", "cstn" ]
 	""" List of universal and common attributes of resources in shortname"""
 
 	def __init__(self, 
@@ -943,8 +943,8 @@ class Resource(object):
 		"""
 		baseQuery = "WITH resource_table AS ({} RETURNING index)"
 		resourceQuery = """
-					INSERT INTO public.resources(ty, ri, rn, pi, ct, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, __rtype__, __originator__, __srn__, __announcedto__, __rvi__)
-						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+					INSERT INTO public.resources(ty, ri, rn, pi, ct, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, cstn, __rtype__, __originator__, __srn__, __announcedto__, __rvi__)
+						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 			   """
 
 		query = resourceQuery.format(
@@ -963,6 +963,7 @@ class Resource(object):
 				self.validateAttributeValue(self.attribute("esi")),
 				self.validateAttributeValue(self.attribute("daci")),
 				self.validateAttributeValue(self.attribute("cr")),
+				self.validateAttributeValue(self.attribute("cstn")),
 				self.validateAttributeValue(self[self._rtype]),
 				self.validateAttributeValue(self[self._originator]),
 				self.validateAttributeValue(self[self._srn]),
