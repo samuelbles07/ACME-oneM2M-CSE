@@ -703,7 +703,6 @@ class Dispatcher(object):
 			return res.errorResultCopy()
 		
 		# Could be that we changed the resource in the activate, therefore write it again
-		resource.checkAttributeUpdate()
 		if not (res := resource.dbUpdate()).resource:
 			resource.dbDelete()
 			return res

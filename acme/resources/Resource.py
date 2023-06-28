@@ -70,14 +70,14 @@ class Resource(object):
 	_rvi				= '__rvi__'					# Request version indicator when created
 	""" Constant: Name of the *__remoteID__* attribute. This attribute holds the Release Version Indicator for which the resource was created. """
 
-	_excludeFromUpdate = [ 'ri', 'ty', 'pi', 'ct', 'lt', 'st', 'rn', 'mgd' ]
-	"""	Resource attributes that are excluded when updating the resource """
- 
 	_index				= "index"
 	# Postgres id increment in resources table
  
 	_resource_index		= "resource_index"
 	# Postgres id increment in resource type specific table
+ 
+	_excludeFromUpdate = [ 'ri', 'ty', 'pi', 'ct', 'lt', 'st', 'rn', 'mgd', _index, _resource_index ]
+	"""	Resource attributes that are excluded when updating the resource """
 
 	# ATTN: There is a similar definition in FCNT, TSB, and others! Don't Forget to add attributes there as well
 	internalAttributes	= [ _rtype, _srn, _node, _createdInternally, _imported, _resource_index,
@@ -118,8 +118,6 @@ class Resource(object):
 		"""	Flag set during creation of a resource instance whether a resource type inherits the `resources.ACP.ACP` from its parent resource. """
 		self.dict 		= {}
 		"""	Dictionary for public and internal resource attributes. """
-		self.modifiedDict = {}
-		""" Modified dictionary for public and internal resource attributes"""
 		self.isImported	= False
 		"""	Flag set during creation of a resource instance whether a resource is imported, which disables some validation checks. """
 		self._originalDict = {}
@@ -357,7 +355,6 @@ class Resource(object):
 
 		# store last modified attributes
 		self[self._modified] = Utils.resourceDiff(dictOrg, self.dict, updatedAttributes)
-		self.modifiedDict = deepcopy(self[self._modified])
 
 		# Check subscriptions
 		CSE.notification.checkSubscriptions(self, NotificationEventType.resourceUpdate, modifiedAttributes = self[self._modified])
@@ -372,15 +369,6 @@ class Resource(object):
 		parent.childUpdated(self, updatedAttributes, originator)
 
 		return Result.successResult()
-
-
-	def checkAttributeUpdate(self):
-		"""Set _modified internal attribute when there's a difference from old and new attribute
-			Retrieve old attribute from DB
-		"""	
-		result = CSE.storage.retrieveResourceRaw(self.ri)
-		self.modifiedDict = Utils.resourceDiff(old=result.resource, new=self.dict, ignoreInternal=False)
-
 
 	def willBeUpdated(self, dct:Optional[JSON] = None, 
 							originator:Optional[str] = None, 
@@ -930,13 +918,16 @@ class Resource(object):
 			return "NULL"
 
 		# Do not at single quotes if attribute value is Int
-		if isinstance(attributeValue, int) or isinstance(attributeValue, bool):
+		if isinstance(attributeValue, bool):
 			return attributeValue
 		elif isinstance(attributeValue, list) or isinstance(attributeValue, dict):
-			attributeValue = json.dumps(attributeValue) # stringify it first to support quote on string
-  
-		# Add single quotes to attribute value
-		return f"'{attributeValue}'"
+			return "'{}'".format( json.dumps(attributeValue) ) # stringify it first to support quote on string
+		elif isinstance(attributeValue, str):
+			# Add single quotes to attribute value
+			return f"'{attributeValue}'"
+		
+		# else consider an enum value which value is int
+		return int(attributeValue)
 
 	
 	def _getInsertGeneralQuery(self) -> str:
@@ -998,39 +989,41 @@ class Resource(object):
 		"""
 		colResource = ""
 		colType = ""
-
-		# Sanity check
-		if not self.modifiedDict:
-			return None
-
+		tyShortName = self.tpe.split(":")[1]
+  
 		# Build query for SET column for each modified attribute
-		for key in self.modifiedDict:
-			if self[key] == None:
+		for key, value in self.dict.items():
+			if key in self._excludeFromUpdate:
 				continue
+			# Seperate 
 			if (key in self.universalCommonAttributes) or (key in self.internalAttributes):
-				colResource = colResource + f",{key}={self.validateAttributeValue(self[key])}"
+				colResource = colResource + f",{key}={self.validateAttributeValue(value)}"
 			else:
-				colType = colType + f",{key}={self.validateAttributeValue(self[key])}"
+				colType = colType + f",{key}={self.validateAttributeValue(value)}"
+
 		# Remove first comma from string
 		colResource = colResource[1:]
+		colType = colType[1:]
 
 		# Build query by checking if there are attributes that not in resource table (universal/common attributes)
-		query = ""
+		query = None
 		if colType == "":
 			query = f"UPDATE resources SET {colResource} WHERE ri = '{self.ri}'"
-		elif colType != "":
-			colType = colType[1:]
-			tyShortName = self.tpe.split(":")[1]
+		elif colResource == "" and colType != "":
 			query = f"""
 					WITH resource_table AS (
-						UPDATE resources SET {colResource} WHERE ri = { self.validateAttributeValue(self.ri) }
+						SELECT index, ri FROM resources WHERE ri = '{self.ri}'
+					)
+					UPDATE {tyShortName} SET {colType} FROM resource_table WHERE {tyShortName}.resource_index = resource_table.index;
+					"""
+		elif colType != "":
+			query = f"""
+					WITH resource_table AS (
+						UPDATE resources SET {colResource} WHERE ri = '{self.ri}'
 						RETURNING index
 					)
 					UPDATE {tyShortName} SET {colType} FROM resource_table WHERE {tyShortName}.resource_index = resource_table.index;
 					"""
-		else:
-			L.isDebug and L.logDebug("No data in modifiedDict")
-			return None
    
 		return query
      
