@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 from typing import Optional
+from copy import deepcopy
 
 from ..etc.Types import AttributePolicyDict, ResourceTypes, JSON
 from ..etc import Utils as Utils
+from ..services.Logging import Logging as L
 from ..services import CSE
 from ..resources.AnnounceableResource import AnnounceableResource
 
@@ -80,9 +82,12 @@ class NOD(AnnounceableResource):
 
 	def _removeNODfromAE(self, aeRI:str, ri:str) -> None:
 		""" Remove NOD.ri from AE node link. """
+		L.isDebug and L.logDebug("_removeNODfromAE")
 		if aeResource := CSE.dispatcher.retrieveResource(aeRI).resource:
+			originalData = deepcopy(aeResource.dict)
 			if (nl := aeResource.nl) and isinstance(nl, str) and ri == nl:
 				aeResource.delAttribute('nl')
+				aeResource.checkAttributeUpdate(originalData)
 				aeResource.dbUpdate()
     
     

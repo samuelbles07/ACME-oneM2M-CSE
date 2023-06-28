@@ -590,6 +590,7 @@ class AnnouncementManager(object):
 				List of `AnnounceableResource` resources that have been found.
 
 		"""
+		# TODO: This can do later
 
 		mcsi = f'{csi}/'
 
@@ -610,6 +611,7 @@ class AnnouncementManager(object):
 					return not isAnnounced
 			return False
 
-		return cast(List[AnnounceableResource], CSE.storage.searchByFilter(_announcedFilter))
+		# TODO
+		return [] #cast(List[AnnounceableResource], CSE.storage.searchByFilter(_announcedFilter))
 
 

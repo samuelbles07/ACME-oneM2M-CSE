@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 from typing import Optional
+from copy import deepcopy
 
 from ..etc.Types import AttributePolicyDict, ResourceTypes, ContentSerializationType, Result, ResponseStatusCode, JSON
 from ..etc.Utils import uniqueAEI
@@ -127,12 +128,14 @@ class AE(AnnounceableResource):
 
 				# Add to new node
 				if node := CSE.dispatcher.retrieveResource(nl).resource:	# new node
+					originalData = deepcopy(node.dict)
 					if not (hael := node.hael):
 						node['hael'] = [ ri ]
 					else:
 						if isinstance(hael, list):
 							hael.append(ri)
 							node['hael'] = hael
+					node.checkAttributeUpdate(originalData)
 					node.dbUpdate()
 			self[Resource._node] = nl
 		
@@ -183,12 +186,14 @@ class AE(AnnounceableResource):
 		"""
 		ri = self.ri
 		if node := CSE.dispatcher.retrieveResource(nodeRi).resource:
+			originalData = deepcopy(node.dict)
 			if (hael := node.hael) and isinstance(hael, list) and ri in hael:
 				hael.remove(ri)
 				if len(hael) == 0:
 					node.delAttribute('hael')
 				else:
 					node['hael'] = hael
+				node.checkAttributeUpdate(originalData)
 				node.dbUpdate()
 
 	

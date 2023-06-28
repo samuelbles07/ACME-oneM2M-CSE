@@ -374,12 +374,16 @@ class Resource(object):
 		return Result.successResult()
 
 
-	def checkAttributeUpdate(self):
+	def checkAttributeUpdate(self, oldDict: Optional[JSON] = None):
 		"""Set _modified internal attribute when there's a difference from old and new attribute
 			Retrieve old attribute from DB
 		"""	
-		result = CSE.storage.retrieveResourceRaw(self.ri)
-		self.modifiedDict = Utils.resourceDiff(old=result.resource, new=self.dict, ignoreInternal=False)
+		if not oldDict:
+			oldDict = CSE.storage.retrieveResourceRaw(self.ri).resource
+			L.isDebug and L.logDebug(f"oldDict {oldDict}")
+			L.isDebug and L.logDebug(f"newDict {self.dict}")
+		self.modifiedDict = Utils.resourceDiff(old=oldDict, new=self.dict, ignoreInternal=False)
+		L.isDebug and L.logDebug(f"modifiedDict {self.modifiedDict}")
 
 
 	def willBeUpdated(self, dct:Optional[JSON] = None, 
@@ -996,41 +1000,45 @@ class Resource(object):
 		Returns:
 			Optional[str]: SQL update command query for respective resource type
 		"""
-		colResource = ""
-		colType = ""
-
 		# Sanity check
 		if not self.modifiedDict:
 			return None
 
+		colResource = ""
+		colType = ""
+		tyShortName = self.tpe.split(":")[1]  
+
 		# Build query for SET column for each modified attribute
 		for key in self.modifiedDict:
-			if self[key] == None:
-				continue
+			# if self[key] == None:
+			# 	continue
 			if (key in self.universalCommonAttributes) or (key in self.internalAttributes):
 				colResource = colResource + f",{key}={self.validateAttributeValue(self[key])}"
 			else:
 				colType = colType + f",{key}={self.validateAttributeValue(self[key])}"
 		# Remove first comma from string
 		colResource = colResource[1:]
+		colType = colType[1:]
 
 		# Build query by checking if there are attributes that not in resource table (universal/common attributes)
-		query = ""
+		query = None
 		if colType == "":
 			query = f"UPDATE resources SET {colResource} WHERE ri = '{self.ri}'"
-		elif colType != "":
-			colType = colType[1:]
-			tyShortName = self.tpe.split(":")[1]
+		elif colResource == "" and colType != "":
 			query = f"""
 					WITH resource_table AS (
-						UPDATE resources SET {colResource} WHERE ri = { self.validateAttributeValue(self.ri) }
+						SELECT index, ri FROM resources WHERE ri = '{self.ri}'
+					)
+					UPDATE {tyShortName} SET {colType} FROM resource_table WHERE {tyShortName}.resource_index = resource_table.index;
+					"""
+		elif colType != "":
+			query = f"""
+					WITH resource_table AS (
+						UPDATE resources SET {colResource} WHERE ri = '{self.ri}'
 						RETURNING index
 					)
 					UPDATE {tyShortName} SET {colType} FROM resource_table WHERE {tyShortName}.resource_index = resource_table.index;
 					"""
-		else:
-			L.isDebug and L.logDebug("No data in modifiedDict")
-			return None
    
 		return query
      

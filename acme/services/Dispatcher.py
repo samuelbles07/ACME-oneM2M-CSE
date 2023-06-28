@@ -703,7 +703,7 @@ class Dispatcher(object):
 			return res.errorResultCopy()
 		
 		# Could be that we changed the resource in the activate, therefore write it again
-		resource.checkAttributeUpdate()
+		resource.checkAttributeUpdate() #
 		if not (res := resource.dbUpdate()).resource:
 			resource.dbDelete()
 			return res
@@ -837,11 +837,11 @@ class Dispatcher(object):
 				Result object.
 		"""
 		L.isDebug and L.logDebug(f'Updating resource ri: {resource.ri}, type: {resource.ty}')
+		# TODO: Why it needs to doUpdateCheck
 		if doUpdateCheck:
 			if not (res := resource.willBeUpdated(dct, originator)).status:
 				return res
 			if not (res := resource.update(dct, originator)).status:
-				# return res.errorResultCopy()
 				return res
 		else:
 			L.isDebug and L.logDebug('No check, skipping resource update')

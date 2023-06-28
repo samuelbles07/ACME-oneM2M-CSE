@@ -62,6 +62,8 @@ class SUB(Resource):
 		'nec': None,
 		'su': None,
 		'acrs': None,
+  
+		# Below attribute haven't define in DB, maybe not defined in oneM2M v3
 		'nse': None,
 		'nsi': None,
 		'ma': None,		# EXPERIMENTAL maxage blocking retrieve
@@ -74,6 +76,7 @@ class SUB(Resource):
 	"""	These attributes are not allowed in blocking-* subscription.
 	"""
 
+	# Below are attribute of ENC attribute. See TS4: Table 6.3.5.7-1:Type Definition of m2m:eventNotificationCriteria
 	_allowedENCAttributes = {
 		'atr', 'net'
 	}
