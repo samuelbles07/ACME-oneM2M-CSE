@@ -90,7 +90,7 @@ class DVI(MgmtObj):
 
 	def getInsertQuery(self) -> Optional[str]:
 		query = """
-					INSERT INTO public.dvi(resource_index, mgd, obis, obps, dc, mgs, cmlk, dlb, man, mfdl, mfd, mod, smod, dtr, dvnm, fwv, swv, hwv, osv, cnty, loc, syst, spur, purl, ptl)
+					INSERT INTO public.dvi(resource_index, mgd, obis, obps, dc, mgs, cmlk, dlb, man, mfdl, mfd, mod, smod, dty, dvnm, fwv, swv, hwv, osv, cnty, loc, syst, spur, purl, ptl)
 					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
 				"""
 
@@ -107,7 +107,7 @@ class DVI(MgmtObj):
 			self.validateAttributeValue(self['mfd']),
 			self.validateAttributeValue(self['mod']),
 			self.validateAttributeValue(self['smod']),
-			self.validateAttributeValue(self['dtr']),
+			self.validateAttributeValue(self['dty']),
 			self.validateAttributeValue(self['dvnm']),
 			self.validateAttributeValue(self['fwv']),
 			self.validateAttributeValue(self['swv']),
