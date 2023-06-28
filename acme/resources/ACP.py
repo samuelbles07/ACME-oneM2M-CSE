@@ -100,7 +100,7 @@ class ACP(AnnounceableResource):
 
 		# Remove own resourceID from all acpi
 		L.isDebug and L.logDebug(f'Removing acp.ri: {self.ri} from assigned resource acpi')    
-		for r in CSE.storage.retrieveResourceBy(apci = self.ri):	# search for presence in acpi, not perfect match
+		for r in CSE.storage.retrieveResourceBy(acpi = self.ri):	# search for presence in acpi, not perfect match
 			acpi = r.acpi
 			acpi.remove(self.ri)
 			r['acpi'] = acpi if len(acpi) > 0 else None	# Remove acpi from resource if empty
