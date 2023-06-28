@@ -128,3 +128,36 @@ class CSR(AnnounceableResource):
 			return res
 		self._normalizeURIAttribute('poa')
 		return Result.successResult()
+
+
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.csr(resource_index, cst, poa, cb, csi, mei, tri, rr, nl, csz, trn, dcse, mtcc, egid, tren, ape, srv)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(int(self['cst'])),  # Case enum to int
+			self.validateAttributeValue(self['poa']),
+			self.validateAttributeValue(self['cb']),
+			self.validateAttributeValue(self['csi']),
+			self.validateAttributeValue(self['mei']),
+			self.validateAttributeValue(self['tri']),
+			self.validateAttributeValue(self['rr']),
+			self.validateAttributeValue(self['nl']),
+			self.validateAttributeValue(self['csz']),
+			self.validateAttributeValue(self['trn']),
+			self.validateAttributeValue(self['dcse']),
+			self.validateAttributeValue(self['mtcc']),
+			self.validateAttributeValue(self['egid']),
+			self.validateAttributeValue(self['tren']),
+			self.validateAttributeValue(self['ape']),
+			self.validateAttributeValue(self['srv'])
+		)

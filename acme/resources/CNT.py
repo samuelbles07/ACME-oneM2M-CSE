@@ -233,4 +233,29 @@ class CNT(AnnounceableResource):
 	
 		# End validating
 		self.__validating = False
+  
+	
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.cnt(resource_index, mni, mbi, mia, cni, cbs, li, ontologyref, disr)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['mni']), # Case enum to int
+			self.validateAttributeValue(self['mbi']),
+			self.validateAttributeValue(self['mia']),
+			self.validateAttributeValue(self['cni']),
+			self.validateAttributeValue(self['cbs']),
+			self.validateAttributeValue(self['li']),
+			self.validateAttributeValue(self['or']),
+			self.validateAttributeValue(self['disr'])
+		)
 
