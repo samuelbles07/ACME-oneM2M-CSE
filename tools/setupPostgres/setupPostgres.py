@@ -18,7 +18,7 @@ class Tables:
                     index SERIAL PRIMARY KEY,
                     ty INTEGER NOT NULL,
                     ri VARCHAR(255) UNIQUE NOT NULL,
-                    rn VARCHAR(255) UNIQUE NOT NULL,
+                    rn VARCHAR(255) NOT NULL,
                     pi VARCHAR(255),
                     ct TIMESTAMP NOT NULL,
                     lt TIMESTAMP NOT NULL,
