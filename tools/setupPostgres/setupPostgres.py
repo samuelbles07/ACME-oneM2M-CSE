@@ -95,7 +95,7 @@ class Tables:
                     index SERIAL PRIMARY KEY,
                     resource_index INTEGER,
                     mni INTEGER,
-                    mbi INTEGER,
+                    mbs INTEGER,
                     mia INTEGER,
                     cni INTEGER NOT NULL,
                     cbs INTEGER NOT NULL,
