@@ -77,7 +77,10 @@ class Resource(object):
 	# Postgres id increment in resource type specific table
  
 	_excludeFromUpdate = [ 'ri', 'ty', 'pi', 'ct', 'lt', 'st', 'rn', 'mgd', _index, _resource_index ]
-	"""	Resource attributes that are excluded when updating the resource """
+	"""	Resource attributes that are excluded when updating the resource from request update call"""
+ 
+	_excludeFromDBUpdate = [ 'ri', 'ty', 'pi', 'ct', 'rn', 'mgd', _index, _resource_index ]
+	""" Resource attributes that are excluded when execute DB update"""
 
 	# ATTN: There is a similar definition in FCNT, TSB, and others! Don't Forget to add attributes there as well
 	internalAttributes	= [ _rtype, _srn, _node, _createdInternally, _imported, _resource_index,
@@ -993,7 +996,7 @@ class Resource(object):
   
 		# Build query for SET column for each modified attribute
 		for key, value in self.dict.items():
-			if key in self._excludeFromUpdate:
+			if key in self._excludeFromDBUpdate:
 				continue
 			# Seperate 
 			if (key in self.universalCommonAttributes) or (key in self.internalAttributes):
