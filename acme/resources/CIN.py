@@ -50,7 +50,6 @@ class CIN(AnnounceableResource):
 			'conr': None,
 			'con': None,
 			'or': None,
-			'conr': None,
 			'dcnt': None,
 			'dgt': None
 	}
@@ -141,8 +140,8 @@ class CIN(AnnounceableResource):
 
 	def getInsertQuery(self) -> Optional[str]:
 		query = """
-					INSERT INTO public.cin(resource_index, cnf, cs, conr, ontologyref, con)
-					SELECT rt.index, {}, {}, {}, {}, {} FROM resource_table rt;
+					INSERT INTO public.cin(resource_index, cnf, cs, conr, ontologyref, con, dcnt, dgt)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
 				"""
 
 		return self._getInsertGeneralQuery() + query.format(
@@ -150,5 +149,7 @@ class CIN(AnnounceableResource):
 			self.validateAttributeValue(self['cs']),
 			self.validateAttributeValue(self['conr']),
 			self.validateAttributeValue(self['or']),
-			self.validateAttributeValue(self['con'])
+			self.validateAttributeValue(self['con']),
+			self.validateAttributeValue(self['dcnt']),
+			self.validateAttributeValue(self['dgt'])
 		)

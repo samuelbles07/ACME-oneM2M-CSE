@@ -118,6 +118,8 @@ class Tables:
                     conr VARCHAR(255),
                     ontologyRef VARCHAR(255),
                     con VARCHAR(255) NOT NULL,
+                    dcnt INTEGER,
+			        dgt TIMESTAMP,
                     CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
