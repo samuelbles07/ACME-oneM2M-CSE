@@ -941,20 +941,18 @@ class Resource(object):
 		Returns:
 			str: Resources table insert query
 		"""
-		query = """
-				WITH resource_table AS (
-					INSERT INTO public.resources(
-						ty, ri, rn, pi, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, __rtype__, __originator__, __srn__, __announcedto__, __rvi__)
-						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
-					RETURNING index
-				) 
+		baseQuery = "WITH resource_table AS ({} RETURNING index)"
+		resourceQuery = """
+					INSERT INTO public.resources(ty, ri, rn, pi, ct, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, __rtype__, __originator__, __srn__, __announcedto__, __rvi__)
+						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 			   """
 
-		return query.format(
+		query = resourceQuery.format(
 				self.validateAttributeValue(self.attribute("ty")),
 				self.validateAttributeValue(self.attribute("ri")),
 				self.validateAttributeValue(self.attribute("rn")),
 				self.validateAttributeValue(self.attribute("pi")),
+				self.validateAttributeValue(self.attribute("ct")),
 				self.validateAttributeValue(self.attribute("lt")),
 				self.validateAttributeValue(self.attribute("acpi")),
 				self.validateAttributeValue(self.attribute("et")),
@@ -971,16 +969,26 @@ class Resource(object):
 				self.validateAttributeValue(self[self._announcedTo]),
 				self.validateAttributeValue(self[self._rvi])
 			)
+  
+		# if resource is not virtual resource, add WITH clause to insert query. Because resource have to insert to another table. See getInsertQuery()
+		if not self.isVirtual():
+			query = baseQuery.format(query)
+  
+  
+		return query
 
 
 	def getInsertQuery(self) -> Optional[str]:
 		"""Get insert SQL query for specific resource type. If Resource base class method is called, then resource not supported yet
 
-		   Supported resource will implemented this function
+		   Supported resource will implement this function
 
 		Returns:
 			Optional[str]: SQL insert command query for respective resource type
 		"""
+		if self.isVirtual():
+			return self._getInsertGeneralQuery()
+
 		return None
 
 
