@@ -35,14 +35,15 @@ class Tables:
                     __rtype__ VARCHAR NOT NULL,
                     __originator__ VARCHAR,
                     __srn__ VARCHAR,
-                    __announcedTo__ JSONB,
+                    __announcedto__ JSONB,
                     __rvi__ VARCHAR(255),
                     __node__ VARCHAR(255),
                     __imported__ BOOLEAN,
-                    __isInstantiated__ BOOLEAN,
-                    __remoteID__ VARCHAR,
+                    __isinstantiated__ BOOLEAN,
+                    __remoteid__ VARCHAR,
                     __modified__ JSONB,
-                    __createdInternally__ VARCHAR
+                    __createdinternally__ VARCHAR,
+                    __isvirtual__ BOOLEAN
                 );
                 """
 

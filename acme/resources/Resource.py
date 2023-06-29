@@ -46,7 +46,7 @@ class Resource(object):
 	_node				= '__node__'
 	"""	Constant: Name of the internal __node__ attribute. This attribute is used in some resource types to hold a reference to the hosting <node> resource. """
 
-	_createdInternally	= '__createdInternally__'	# TODO better name. This is actually an RI
+	_createdInternally	= '__createdinternally__'	# TODO better name. This is actually an RI
 	""" Constant: Name of the *__createdInternally__* attribute. This attribute indicates whether a resource was created internally or by an external request. """
 
 	_imported			= '__imported__'
@@ -55,7 +55,7 @@ class Resource(object):
 	_announcedTo 		= '__announcedto__'			# List
 	""" Constant: Name of the *__announcedTo__* attribute. This attribute holds internal announcement information. """
 
-	_isInstantiated		= '__isInstantiated__'
+	_isInstantiated		= '__isinstantiated__'
 	""" Constant: Name of the *__isInstantiated__* attribute. This attribute indicates whether a resource is instantiated. """
 
 	_originator			= '__originator__'			# Or creator
@@ -64,11 +64,14 @@ class Resource(object):
 	_modified			= '__modified__'
 	""" Constant: Name of the *__modified__* attribute. This attribute holds the resource's precise modification timestamp. """
 
-	_remoteID			= '__remoteID__'			# When this is a resource from another CSE
-	""" Constant: Name of the *__remoteID__* attribute. This attribute holds a list of the resource's announced variants. """
+	_remoteID			= '__remoteid__'			# When this is a resource from another CSE
+	""" Constant: Name of the *__remoteid__* attribute. This attribute holds a list of the resource's announced variants. """
 
 	_rvi				= '__rvi__'					# Request version indicator when created
-	""" Constant: Name of the *__remoteID__* attribute. This attribute holds the Release Version Indicator for which the resource was created. """
+	""" Constant: Name of the *__rvi__* attribute. This attribute holds the Release Version Indicator for which the resource was created. """
+ 
+	_isVirtual			= '__isvirtual__'
+	""" COnstant: Name of the *__isvirtual__* attribute. This attribute holds boolean value indicating resource either virtual resource or not"""
 
 	_index				= "index"
 	# Postgres id increment in resources table
@@ -76,15 +79,15 @@ class Resource(object):
 	_resource_index		= "resource_index"
 	# Postgres id increment in resource type specific table
  
-	_excludeFromUpdate = [ 'ri', 'ty', 'pi', 'ct', 'lt', 'st', 'rn', 'mgd', _index, _resource_index ]
+	_excludeFromUpdate = [ 'ri', 'ty', 'pi', 'ct', 'lt', 'st', 'rn', 'mgd', _index, _resource_index, _isVirtual ]
 	"""	Resource attributes that are excluded when updating the resource from request update call"""
  
-	_excludeFromDBUpdate = [ 'ri', 'ty', 'pi', 'ct', 'rn', 'mgd', _index, _resource_index ]
+	_excludeFromDBUpdate = [ 'ri', 'ty', 'pi', 'ct', 'rn', 'mgd', _index, _resource_index, _isVirtual]
 	""" Resource attributes that are excluded when execute DB update"""
 
 	# ATTN: There is a similar definition in FCNT, TSB, and others! Don't Forget to add attributes there as well
-	internalAttributes	= [ _rtype, _srn, _node, _createdInternally, _imported, _resource_index,
-							_isInstantiated, _originator, _announcedTo, _modified, _remoteID, _rvi, _index ]
+	internalAttributes	= [ _rtype, _srn, _node, _createdInternally, _imported, _resource_index, _index,
+							_isInstantiated, _originator, _announcedTo, _modified, _remoteID, _rvi, _isVirtual ]
 	"""	List of internal attributes and which do not belong to the oneM2M resource attributes """
 
 	universalCommonAttributes = [ "ty", "ri", "rn", "pi", "ct", "lt", "acpi", "et", "st", "at", "aa", "lbl",
@@ -184,6 +187,7 @@ class Resource(object):
 
 		self[self._rtype] = self.tpe
 		self.setAttribute(self._announcedTo, [], overwrite = False)
+		self.setAttribute(self._isVirtual, self.isVirtual())
 
 
 	# Default encoding implementation. Overwrite in subclasses
@@ -943,10 +947,10 @@ class Resource(object):
 		"""
 		baseQuery = "WITH resource_table AS ({} RETURNING index)"
 		resourceQuery = """
-					INSERT INTO public.resources(ty, ri, rn, pi, ct, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, cstn, __rtype__, __originator__, __srn__, __announcedto__, __rvi__)
-						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+					INSERT INTO public.resources(ty, ri, rn, pi, ct, lt, acpi, et, st, at, aa, lbl, esi, daci, cr, cstn, 
+						__rtype__, __originator__, __srn__, __announcedto__, __rvi__, __node__, __imported__, __isinstantiated__, __remoteid__, __modified__, __createdinternally__, __isvirtual__)
+						VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
 			   """
-
 		query = resourceQuery.format(
 				self.validateAttributeValue(self.attribute("ty")),
 				self.validateAttributeValue(self.attribute("ri")),
@@ -968,7 +972,14 @@ class Resource(object):
 				self.validateAttributeValue(self[self._originator]),
 				self.validateAttributeValue(self[self._srn]),
 				self.validateAttributeValue(self[self._announcedTo]),
-				self.validateAttributeValue(self[self._rvi])
+				self.validateAttributeValue(self[self._rvi]),
+				self.validateAttributeValue(self[self._node]),
+				self.validateAttributeValue(self[self._imported]),
+				self.validateAttributeValue(self[self._isInstantiated]),
+				self.validateAttributeValue(self[self._remoteID]),
+				self.validateAttributeValue(self[self._modified]),
+				self.validateAttributeValue(self[self._createdInternally]),
+				self.validateAttributeValue(self[self._isVirtual])
 			)
   
 		# if resource is not virtual resource, add WITH clause to insert query. Because resource have to insert to another table. See getInsertQuery()

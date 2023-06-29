@@ -304,6 +304,10 @@ class PostgresBinding():
         if len(baseResult) == 0:
             return []
         
+        # Because virtual resource don't have dedicated attribute, it doesn't have it's own table
+        if baseResult[0]["__isvirtual__"]:
+            return baseResult
+        
         # Get resource type name in shortname for table name reference
         rtype = baseResult[0]["__rtype__"]
         tyShortName = rtype.split(":")[1]
@@ -355,6 +359,11 @@ class PostgresBinding():
         # TODO: Optimize query call by using pgsql loop in the query?
         result = []
         for base in baseResult:
+            # Because virtual resource don't have dedicated attribute, it doesn't have it's own table
+            if base["__isvirtual__"]:
+                result.append(base)
+                continue
+            
             # Get resource type name in shortname for table name reference
             rtype = base["__rtype__"]
             tyShortName = rtype.split(":")[1]
@@ -411,6 +420,11 @@ class PostgresBinding():
         # Do check if resource exist
         if len(baseResult) == 0:
             return []
+        
+        # Because virtual resource don't have dedicated attribute, it doesn't have it's own table
+        if baseResult[0]["__isvirtual__"]:
+            L.logDebug(f'baseResult: {baseResult}')
+            return baseResult
         
         # Get resource type name in shortname for table name reference
         rtype = baseResult[0]["__rtype__"]
