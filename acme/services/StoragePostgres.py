@@ -125,8 +125,9 @@ class PostgresBinding():
     
     
     def retrieveResourceByAttribute(self, acpi: Optional[str] = None, 
-                           ty: Optional[int] = None, 
-                           filterResult: Optional[list] = None) -> Optional[list[JSON]]:
+                                    mid: Optional[str] = None,
+                                    ty: Optional[int] = None, 
+                                    filterResult: Optional[list] = None) -> Optional[list[JSON]]:
         """ Retrieve list of resource in dict based on attribute value
 
         Args:
@@ -140,6 +141,8 @@ class PostgresBinding():
         result = []
         if acpi:
             result = self._selectByACPI(acpi)
+        elif mid:
+            result = self._selectByMID(mid)
             
         return (result if result != [] else None)
     
@@ -444,6 +447,14 @@ class PostgresBinding():
     
     
     def _selectByACPI(self, acpi: str) -> list[dict]:
+        """ Retrieve all resource that contain ACP in the acpi attributes
+
+        Args:
+            acpi (str): ACP resourceId that want to search for in resource acpi attribute
+
+        Returns:
+            list[dict]: list of resources (any resource type)
+        """        
         query = f"""
                     SELECT row_to_json(results) FROM (
                         SELECT * FROM resources WHERE acpi @> '[\"{acpi}\"]'
@@ -466,6 +477,24 @@ class PostgresBinding():
                 result.append( base | resourceResult[0] )
         
         return result
+    
+    
+    def _selectByMID(self, mid: str) -> list[dict]:
+        """ Retrieve every group resource that contains ri in the mid attribute. 
+
+        Args:
+            mid (str): resourceId of member that want to search for in mid attribute of group
+
+        Returns:
+            list[dict]: list of group resource
+        """        
+        
+        query = f"""
+                SELECT row_to_json(results) FROM (
+                    SELECT * FROM resources, grp WHERE grp.mid @> '[\"{mid}\"]' AND grp.resource_index = resources.index
+                ) as results;
+                """
+        return self._execQuery(query)
     
 
     def _execQuery(self, query: str) -> list:

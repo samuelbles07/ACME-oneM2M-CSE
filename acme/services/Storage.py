@@ -267,11 +267,12 @@ class Storage(object):
 		return self._postgres.searchResources(ty = int(ty))
 
 
-	def retrieveResourceBy(self, acpi: Optional[str] = None, 
-                           ty: Optional[int] = None, 
-                           filterResult: Optional[list] = None) -> list[Resource]:
+	def retrieveResourceBy(self, acpi: Optional[str] = None,
+							mid: Optional[str] = None,
+							ty: Optional[int] = None, 
+							filterResult: Optional[list] = None) -> list[Resource]:
      
-		return  [ res	for each in self._postgres.retrieveResourceByAttribute(acpi = acpi, ty = ty, filterResult = filterResult)
+		return  [ res	for each in self._postgres.retrieveResourceByAttribute(acpi = acpi, mid = mid, ty = ty, filterResult = filterResult)
 						if (res := Factory.resourceFromDict(each).resource)
 				]
 

@@ -270,8 +270,7 @@ class GroupManager(object):
 		L.isDebug and L.logDebug('Looking for and removing deleted resource from groups')
 
 		ri = deletedResource.ri
-		groups = CSE.storage.searchByFragment(	{ 'ty' : ResourceTypes.GRP }, 
-												lambda r: (mid := r.get('mid')) and ri in mid)	# type: ignore # Filter all <grp> where mid contains ri
+		groups = CSE.storage.retrieveResourceBy(mid = ri) # Find all <grp> where mid contains ri
 		for group in groups:
 			L.isDebug and L.logDebug(f'Removing deleted resource: {ri} from group: {group.ri}')
 			group['mid'].remove(ri)
