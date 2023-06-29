@@ -283,15 +283,17 @@ class RegistrationManager(object):
 
 	def handleCSEBaseAnncRegistration(self, cbA:Resource, originator:str) -> Result:
 		L.isDebug and L.logDebug(f'Registering CSEBaseAnnc. csi: {cbA.csi}')
+		#! CSEBase announce not supported
+		return Result.errorResult()
 
-		# Check whether the same CSEBase has already registered (-> only once)
-		if (lnk := cbA.lnk):
-			if len(list := CSE.storage.searchByFragment({'lnk': lnk})) > 0:
-				return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logDebug(f'CSEBaseAnnc with lnk: {lnk} already exists'))
+		# # Check whether the same CSEBase has already registered (-> only once)
+		# if (lnk := cbA.lnk):
+		# 	if len(list := CSE.storage.searchByFragment({'lnk': lnk})) > 0:
+		# 		return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logDebug(f'CSEBaseAnnc with lnk: {lnk} already exists'))
 
-		# Assign a rn
-		cbA.setResourceName(Utils.uniqueRN(f'{cbA.tpe}_{Utils.getIdFromOriginator(originator)}'))
-		return Result.successResult()
+		# # Assign a rn
+		# cbA.setResourceName(Utils.uniqueRN(f'{cbA.tpe}_{Utils.getIdFromOriginator(originator)}'))
+		# return Result.successResult()
 
 
 	#########################################################################

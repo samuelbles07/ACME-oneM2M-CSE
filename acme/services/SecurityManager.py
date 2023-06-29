@@ -353,19 +353,21 @@ class SecurityManager(object):
 			Return:
 				List of <ACP> resources. This list might be empty.
 		"""
-		origs = [ originator, 'all' ]
+		# origs = [ originator, 'all' ]
 
-		def filter(doc:JSON) -> bool:
-			if (acr := Utils.findXPath(doc, 'pv/acr')):
-				for each in acr:
-					if (acop := each.get('acop')) is None or acop & permission == 0:
-						continue
-					if (acor := each.get('acor')) is None or not any(x in acor for x in origs):
-						continue
-					return True
-			return False
+		# def filter(doc:JSON) -> bool:
+		# 	if (acr := Utils.findXPath(doc, 'pv/acr')):
+		# 		for each in acr:
+		# 			if (acop := each.get('acop')) is None or acop & permission == 0:
+		# 				continue
+		# 			if (acor := each.get('acor')) is None or not any(x in acor for x in origs):
+		# 				continue
+		# 			return True
+		# 	return False
 
-		return cast(List[ACP], CSE.storage.searchByFragment(dct = { 'ty' : ResourceTypes.ACP }, filter = filter))
+		# return cast(List[ACP], CSE.storage.searchByFragment(dct = { 'ty' : ResourceTypes.ACP }, filter = filter))
+		#! This function is never called
+		return []
 
 
 	##########################################################################
