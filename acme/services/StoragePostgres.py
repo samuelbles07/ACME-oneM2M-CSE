@@ -127,7 +127,7 @@ class PostgresBinding():
     def retrieveResourceByAttribute(self, acpi: Optional[str] = None, 
                                     mid: Optional[str] = None,
                                     ty: Optional[int] = None, 
-                                    filterResult: Optional[list] = None) -> Optional[list[JSON]]:
+                                    filterResult: Optional[list] = None) -> list[JSON]:
         """ Retrieve list of resource in dict based on attribute value
 
         Args:
@@ -144,7 +144,7 @@ class PostgresBinding():
         elif mid:
             result = self._selectByMID(mid)
             
-        return (result if result != [] else None)
+        return result
     
     
     def retrieveOldestResource(self, ty: int, pi:Optional[str] = None) -> Optional[dict]:
