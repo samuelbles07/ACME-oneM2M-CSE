@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any, Callable, Tuple, cast, Optional
 import random, string, sys, re, threading, socket
 import traceback
+import json
 from distutils.util import strtobool
 
 
@@ -719,7 +720,10 @@ def findXPath(dct:JSON, key:str, default:Optional[Any] = None) -> Optional[Any]:
 		elif pathElement not in data:	# if key not in dict
 			return default
 		else:
-			data = data[pathElement]	# found data for the next level down
+			tmp = data
+			if isinstance(data, str):
+				tmp = json.loads(data)
+			data = tmp[pathElement]	# found data for the next level down
 	return data
 
 

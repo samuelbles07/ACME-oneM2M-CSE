@@ -144,6 +144,7 @@ class SUB(Resource):
 														isAnnounced = self.isAnnounced())).status:
 			return res
 
+		oldSub = CSE.storage.retrieveResource(ri = self.ri).resource
 
 		# Handle update notificationStatsEnable attribute, but only if present in the resource.
 		# This is important bc it can be set to True, False, or Null.
@@ -175,6 +176,8 @@ class SUB(Resource):
 			if not (parentResource := self.retrieveParentResource()):
 				return Result(status = False, rsc = ResponseStatusCode.internalServerError, dbg = L.logErr(f'cannot retrieve parent resource'))
 			if  not (res := self._checkAllowedCHTY(parentResource, chty)).status:
+				L.isDebug and L.logDebug("Updated CHTY attribute is not allowed, rollback from DB")
+				CSE.storage.updateResource(oldSub)
 				return res
 
 		return CSE.notification.updateSubscription(self, previousNus, originator)
@@ -207,7 +210,7 @@ class SUB(Resource):
 			# Only one of each blocking UPDATE or RETRIEVE etc must exist for this resource
 			# This works here in validate bc it is only allowed in CREATE/activate, and this resource has 
 			# not been written to DB yet.
-			if CSE.notification.getSubscriptionsByNetChty(parentResource.ri, net = net):
+			if CSE.notification.getSubscriptionsByNetChty(parentResource.ri, net = net, exc = self.ri):
 				return Result.errorResult(dbg = L.logDebug(f'A subscription with blockingRetrieve/blockingUpdate/blockingRetrieveDirectChild already exsists for this resource'))
 
 			# Only one NU is allowed for blocking UPDATE or RETRIEVE
