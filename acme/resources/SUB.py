@@ -336,3 +336,38 @@ class SUB(Resource):
 	
 			"""
 		return len(set(dct.keys()).difference(self._allowedENCAttributes)) > 0
+
+
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.sub(resource_index, enc, exc, nu, gpi, nfu, bn, rl, psn, pn, nsp, ln, nct, nec, su, acrs, nse, nsi, ma)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['enc']),
+			self.validateAttributeValue(self['exc']),
+			self.validateAttributeValue(self['nu']),
+			self.validateAttributeValue(self['gpi']),
+			self.validateAttributeValue(self['nfu']),
+			self.validateAttributeValue(self['bn']),
+			self.validateAttributeValue(self['rl']),
+			self.validateAttributeValue(self['psn']),
+			self.validateAttributeValue(self['pn']),
+			self.validateAttributeValue(self['nsp']),
+			self.validateAttributeValue(self['ln']),
+			self.validateAttributeValue(self['nct']),
+			self.validateAttributeValue(self['nec']),
+			self.validateAttributeValue(self['su']),
+			self.validateAttributeValue(self['acrs']),
+			self.validateAttributeValue(self['nse']),
+			self.validateAttributeValue(self['nsi']),
+			self.validateAttributeValue(self['ma'])
+		)

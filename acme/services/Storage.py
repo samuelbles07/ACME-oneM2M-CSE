@@ -121,8 +121,8 @@ class Storage(object):
 			# self.hasResource('_')
 			# dbFile = 'identifiers'
 			# self.structuredIdentifier('_')
-			dbFile = 'subscription'
-			self.getSubscription('_')
+			# dbFile = 'subscription'
+			# self.getSubscription('_')
 			dbFile = 'batch notification'
 			self.countBatchNotifications('_', '_')
 			dbFile = 'statistics'
@@ -398,19 +398,18 @@ class Storage(object):
 		return self._postgres.searchIdentifiers(srn = srn)
 
 	# TODO
-	def searchByFragment(self, dct:dict, filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
-		""" Search and return all resources that match the given fragment dictionary/document.
+	# def searchByFragment(self, dct:dict, filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
+	# 	""" Search and return all resources that match the given fragment dictionary/document.
 
-			Args:
-				dct: A fragment dictionary to use as a filter for the search.
-				filter: An optional callback to provide additional filter functionality.
-			Return:
-				List of `Resource` objects.
-		"""
-		return []
-		# return	[ res	for each in self.db.searchByFragment(dct) 
-		# 				if (not filter or filter(each)) and (res := Factory.resourceFromDict(each).resource) # either there is no filter or the filter is called to test the resource
-		# 		] 
+	# 		Args:
+	# 			dct: A fragment dictionary to use as a filter for the search.
+	# 			filter: An optional callback to provide additional filter functionality.
+	# 		Return:
+	# 			List of `Resource` objects.
+	# 	"""
+	# 	return	[ res	for each in self.db.searchByFragment(dct) 
+	# 					if (not filter or filter(each)) and (res := Factory.resourceFromDict(each).resource) # either there is no filter or the filter is called to test the resource
+	# 			] 
 
 
 	# def searchByFilter(self, filter:Callable[[JSON], bool]) -> list[Resource]:
@@ -431,32 +430,65 @@ class Storage(object):
 	##	Subscriptions
 	##
 
-	def getSubscription(self, ri:str) -> Optional[Document]:
+	def getSubscription(self, ri:str) -> Optional[JSON]:
 		# L.logDebug(f'Retrieving subscription: {ri}')
-		subs = self.db.searchSubscriptions(ri = ri)
-		if not subs or len(subs) != 1:
-			return None
-		return subs[0]
+		result = self._postgres.searchResources(ri = ri, ty = int(ResourceTypes.SUB))
+		if len(result) > 0:
+			# Add enc field member to it's own field
+			enc = result[0]["enc"]
+			if enc: # Sanity check if enc is None
+				result[0]["net"] = enc.get("net") # type: dict
+				result[0]["atr"] = enc.get("atr") # type: dict
+				result[0]["chty"] = enc.get("chty") # type: dict
+			else:
+				result[0]["net"] = None
+				result[0]["atr"] = None
+				result[0]["chty"] = None    
+			# enc field is not neccessary anymore
+			# del result[0]["enc"]
+			# Somehow in legacy TinyDB binding storate (sub table), 'nu' field name is changed to 'nus'
+			result[0]["nus"] = result[0].pop("nu")
+			return result[0]
+   
+		return None
 
 
-	def getSubscriptionsForParent(self, pi:str) -> list[Document]:
+	def getSubscriptionsForParent(self, pi:str) -> list[JSON]:
 		# L.logDebug(f'Retrieving subscriptions for parent: {pi}')
-		return self.db.searchSubscriptions(pi = pi)
+		# return self.db.searchSubscriptions(pi = pi)
+		result = self._postgres.searchResources(pi = pi, ty = int(ResourceTypes.SUB))
+		for idx, _ in enumerate(result):
+			# Add enc field member to it's own field
+			enc = result[idx]["enc"]
+			if enc: # Sanity check if enc is None
+				result[idx]["net"] = enc.get("net") # type: dict
+				result[idx]["atr"] = enc.get("atr") # type: dict
+				result[idx]["chty"] = enc.get("chty") # type: dict
+			else:
+				result[idx]["net"] = None
+				result[idx]["atr"] = None
+				result[idx]["chty"] = None
+			# enc field is not neccessary anymore
+			# del result[idx]["enc"]
+			# Somehow in legacy TinyDB binding storate (sub table), 'nu' field name is changed to 'nus'
+			result[idx]["nus"] = result[idx].pop("nu")
+   
+		return result
 
 
-	def addSubscription(self, subscription:Resource) -> bool:
-		# L.logDebug(f'Adding subscription: {ri}')
-		return self.db.upsertSubscription(subscription)
+	# def addSubscription(self, subscription:Resource) -> bool:
+	# 	# L.logDebug(f'Adding subscription: {ri}')
+	# 	return self.db.upsertSubscription(subscription)
 
 
-	def removeSubscription(self, subscription:Resource) -> bool:
-		# L.logDebug(f'Removing subscription: {subscription.ri}')
-		return self.db.removeSubscription(subscription)
+	# def removeSubscription(self, subscription:Resource) -> bool:
+	# 	# L.logDebug(f'Removing subscription: {subscription.ri}')
+	# 	return self.db.removeSubscription(subscription)
 
 
-	def updateSubscription(self, subscription:Resource) -> bool:
-		# L.logDebug(f'Updating subscription: {ri}')
-		return self.db.upsertSubscription(subscription)
+	# def updateSubscription(self, subscription:Resource) -> bool:
+	# 	# L.logDebug(f'Updating subscription: {ri}')
+	# 	return self.db.upsertSubscription(subscription)
 
 
 	#########################################################################
@@ -521,14 +553,14 @@ class TinyDBBinding(object):
 		# create transaction locks
 		# self.lockResources				= Lock()
 		# self.lockIdentifiers			= Lock()
-		self.lockSubscriptions			= Lock()
+		# self.lockSubscriptions			= Lock()
 		self.lockBatchNotifications		= Lock()
 		self.lockStatistics 			= Lock()
 
 		# file names
 		# self.fileResources				= f'{self.path}/resources{postfix}.json'
 		# self.fileIdentifiers			= f'{self.path}/identifiers{postfix}.json'
-		self.fileSubscriptions			= f'{self.path}/subscriptions{postfix}.json'
+		# self.fileSubscriptions			= f'{self.path}/subscriptions{postfix}.json'
 		self.fileBatchNotifications		= f'{self.path}/batchNotifications{postfix}.json'
 		self.fileStatistics				= f'{self.path}/statistics{postfix}.json'
 
@@ -537,14 +569,14 @@ class TinyDBBinding(object):
 			L.isInfo and L.log('DB in memory')
 			# self.dbResources 			= TinyDB(storage = MemoryStorage) # TODO: Change this to postgres binding, implemented function in postgres binding, just call to the function directly
 			# self.dbIdentifiers 			= TinyDB(storage = MemoryStorage)
-			self.dbSubscriptions 		= TinyDB(storage = MemoryStorage)
+			# self.dbSubscriptions 		= TinyDB(storage = MemoryStorage)
 			self.dbBatchNotifications	= TinyDB(storage = MemoryStorage)
 			self.dbStatistics			= TinyDB(storage = MemoryStorage)
 		else:
 			L.isInfo and L.log('DB in file system')
 			# self.dbResources 			= TinyDB(self.fileResources)
 			# self.dbIdentifiers 			= TinyDB(self.fileIdentifiers)
-			self.dbSubscriptions 		= TinyDB(self.fileSubscriptions)
+			# self.dbSubscriptions 		= TinyDB(self.fileSubscriptions)
 			self.dbBatchNotifications 	= TinyDB(self.fileBatchNotifications)
 			self.dbStatistics 			= TinyDB(self.fileStatistics)
 
@@ -563,14 +595,14 @@ class TinyDBBinding(object):
 		# Open/Create tables
 		# self.tabResources 				= self.dbResources.table('resources', cache_size = self.cacheSize)
 		# self.tabIdentifiers 			= self.dbIdentifiers.table('identifiers', cache_size = self.cacheSize)
-		self.tabSubscriptions 			= self.dbSubscriptions.table('subsriptions', cache_size = self.cacheSize)
+		# self.tabSubscriptions 			= self.dbSubscriptions.table('subsriptions', cache_size = self.cacheSize)
 		self.tabBatchNotifications 		= self.dbBatchNotifications.table('batchNotifications', cache_size = self.cacheSize)
 		self.tabStatistics 				= self.dbStatistics.table('statistics', cache_size = self.cacheSize)
 
 		# Create the Queries
 		# self.resourceQuery 				= Query()
 		# self.identifierQuery 			= Query()
-		self.subscriptionQuery			= Query()
+		# self.subscriptionQuery			= Query()
 		self.batchNotificationQuery 	= Query()
 
 
@@ -581,8 +613,8 @@ class TinyDBBinding(object):
 		# 	self.dbResources.close()
 		# with self.lockIdentifiers:
 		# 	self.dbIdentifiers.close()
-		with self.lockSubscriptions:
-			self.dbSubscriptions.close()
+		# with self.lockSubscriptions:
+		# 	self.dbSubscriptions.close()
 		with self.lockBatchNotifications:
 			self.dbBatchNotifications.close()
 		with self.lockStatistics:
@@ -593,7 +625,7 @@ class TinyDBBinding(object):
 		L.isInfo and L.log('Purging DBs')
 		# self.tabResources.truncate()
 		# self.tabIdentifiers.truncate()
-		self.tabSubscriptions.truncate()
+		# self.tabSubscriptions.truncate()
 		self.tabBatchNotifications.truncate()
 		self.tabStatistics.truncate()
 	
@@ -601,7 +633,7 @@ class TinyDBBinding(object):
 	def backupDB(self, dir:str) -> bool:
 		# shutil.copy2(self.fileResources, dir)
 		# shutil.copy2(self.fileIdentifiers, dir)
-		shutil.copy2(self.fileSubscriptions, dir)
+		# shutil.copy2(self.fileSubscriptions, dir)
 		shutil.copy2(self.fileBatchNotifications, dir)
 		shutil.copy2(self.fileStatistics, dir)
 		return True
@@ -753,41 +785,41 @@ class TinyDBBinding(object):
 	#
 
 
-	def searchSubscriptions(self, ri:Optional[str] = None, 
-								  pi:Optional[str] = None) -> Optional[list[Document]]:
-		with self.lockSubscriptions:
-			if ri:
-				return self.tabSubscriptions.search(self.subscriptionQuery.ri == ri)
-			if pi:
-				return self.tabSubscriptions.search(self.subscriptionQuery.pi == pi)
-			return None
+	# def searchSubscriptions(self, ri:Optional[str] = None, 
+	# 							  pi:Optional[str] = None) -> Optional[list[Document]]:
+	# 	with self.lockSubscriptions:
+	# 		if ri:
+	# 			return self.tabSubscriptions.search(self.subscriptionQuery.ri == ri)
+	# 		if pi:
+	# 			return self.tabSubscriptions.search(self.subscriptionQuery.pi == pi)
+	# 		return None
 
 
-	def upsertSubscription(self, subscription:Resource) -> bool:
-		with self.lockSubscriptions:
-			ri = subscription.ri
-			return self.tabSubscriptions.upsert(
-					{	'ri'  		: ri, 
-						'pi'  		: subscription.pi,
-						'nct' 		: subscription.nct,
-						'net' 		: subscription['enc/net'],	# TODO perhaps store enc as a whole?
-						'atr' 		: subscription['enc/atr'],
-						'chty'		: subscription['enc/chty'],
-						'exc' 		: subscription.exc,
-						'ln'  		: subscription.ln,
-						'nus' 		: subscription.nu,
-						'bn'  		: subscription.bn,
-						'cr'  		: subscription.cr,
-						'originator': subscription.getOriginator(),
-						'ma' 		: subscription.ma, # EXPERIMENTAL ma = maxAge
-						'nse' 		: subscription.nse
-					}, 
-					self.subscriptionQuery.ri == ri) is not None
+	# def upsertSubscription(self, subscription:Resource) -> bool:
+	# 	with self.lockSubscriptions:
+	# 		ri = subscription.ri
+	# 		return self.tabSubscriptions.upsert(
+	# 				{	'ri'  		: ri, 
+	# 					'pi'  		: subscription.pi,
+	# 					'nct' 		: subscription.nct,
+	# 					'net' 		: subscription['enc/net'],	# TODO perhaps store enc as a whole?
+	# 					'atr' 		: subscription['enc/atr'],
+	# 					'chty'		: subscription['enc/chty'],
+	# 					'exc' 		: subscription.exc,
+	# 					'ln'  		: subscription.ln,
+	# 					'nus' 		: subscription.nu,
+	# 					'bn'  		: subscription.bn,
+	# 					'cr'  		: subscription.cr,
+	# 					'originator': subscription.getOriginator(),
+	# 					'ma' 		: subscription.ma, # EXPERIMENTAL ma = maxAge
+	# 					'nse' 		: subscription.nse
+	# 				}, 
+	# 				self.subscriptionQuery.ri == ri) is not None
 
 
-	def removeSubscription(self, subscription:Resource) -> bool:
-		with self.lockSubscriptions:
-			return len(self.tabSubscriptions.remove(self.subscriptionQuery.ri == subscription.ri)) > 0
+	# def removeSubscription(self, subscription:Resource) -> bool:
+	# 	with self.lockSubscriptions:
+	# 		return len(self.tabSubscriptions.remove(self.subscriptionQuery.ri == subscription.ri)) > 0
 
 
 	#

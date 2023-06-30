@@ -106,7 +106,9 @@ class PostgresBinding():
 
         # TODO: For resource that have ontologyRef (eg. cnt and ae), in DB it's not in shortname instead ontologyref
 
-        if ri:
+        if ri and ty:
+            return self._selectByRI(ri = ri, ty = ty)
+        elif ri:
             return self._selectByRI(ri = ri)
         elif pi and ty:
             return self._selectByPI(pi = pi, ty = ty)
@@ -288,7 +290,7 @@ class PostgresBinding():
         return result
 
 
-    def _selectByRI(self, ri: str) -> list[dict]:
+    def _selectByRI(self, ri: str, ty: Optional[int] = None) -> list[dict]:
         """Expected only return 1 value, because resource identifier is unique
 
         Args:
@@ -297,6 +299,19 @@ class PostgresBinding():
         Returns:
             list[dict]: resource attribute in list of dict. List only have 1 data.
         """
+        if ty:
+            # Get shortname of resources type 
+            rType = ResourceTypes(ty).tpe()
+            tyShortName = rType.split(":")[1]
+            # Format query
+            query = """
+                    SELECT row_to_json(results) FROM (
+                        SELECT * FROM resources, {} WHERE resources.ri = '{}' AND resources.ty = {} AND resources.index = {}.resource_index
+                    ) as results;
+                    """
+            query = query.format(tyShortName, ri, ty, tyShortName)
+            return self._execQuery(query)
+        
         
         # TODO: Do it in 1 query, result _rtype_ as reference table to look for
         # Retrieve data from resources table

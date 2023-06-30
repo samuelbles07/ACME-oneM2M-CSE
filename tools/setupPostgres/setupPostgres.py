@@ -217,6 +217,9 @@ class Tables:
                     nec INTEGER,
                     su VARCHAR(255),
                     acrs VARCHAR(255),
+                    nse BOOLEAN,
+                    nsi JSONB,
+                    ma TIMESTAMP,
                     CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """   

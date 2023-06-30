@@ -1102,7 +1102,7 @@ class NotificationManager(object):
 			else:
 				subResource.setAttribute('exc', exc)		# Update the exc attribute
 				subResource.dbUpdate()						# Update the real subscription
-				CSE.storage.updateSubscription(subResource)	# Also update the internal sub
+				# CSE.storage.updateSubscription(subResource)	# Also update the internal sub
 		return result								
 
 
