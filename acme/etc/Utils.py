@@ -997,6 +997,33 @@ def strToBool(value:str) -> bool:
 	"""
 	return bool(strtobool(str(value)))
 
+
+def validateAttributeValue(attributeValue: Any) -> Any:
+	""" Validate attribute value to follow SQL query format
+
+	Args:
+		attributeValue (Any): Value that will be validate
+
+	Returns:
+		str: SQL query format based on the type of attribute value. Can be Bool, Int or String.
+	"""
+	
+	# If attribute has no value, the return NULL in string
+	if attributeValue == None:
+		return "NULL"
+
+	# Do not at single quotes if attribute value is Int
+	if isinstance(attributeValue, bool) or isinstance(attributeValue, float):
+		return attributeValue
+	elif isinstance(attributeValue, list) or isinstance(attributeValue, dict):
+		return "'{}'".format( json.dumps(attributeValue) ) # stringify it first to support quote on string
+	elif isinstance(attributeValue, str):
+		# Add single quotes to attribute value
+		return f"'{attributeValue}'"
+	
+	# else consider an enum value which value is int
+	return int(attributeValue)
+
 ##############################################################################
 #
 #	Threads

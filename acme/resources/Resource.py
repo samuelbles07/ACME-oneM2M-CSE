@@ -910,31 +910,8 @@ class Resource(object):
 		return res
 
 
-	def validateAttributeValue(self, attributeValue: Any) -> str:
-		""" Validate attribute value to follow SQL query format
-		TODO: Add this to Utils
-		Args:
-			attributeValue (Any): Value that will be validate
-
-		Returns:
-			str: SQL query format string value
-		"""
-		
-		# If attribute has no value, the return NULL in string
-		if attributeValue == None:
-			return "NULL"
-
-		# Do not at single quotes if attribute value is Int
-		if isinstance(attributeValue, bool):
-			return attributeValue
-		elif isinstance(attributeValue, list) or isinstance(attributeValue, dict):
-			return "'{}'".format( json.dumps(attributeValue) ) # stringify it first to support quote on string
-		elif isinstance(attributeValue, str):
-			# Add single quotes to attribute value
-			return f"'{attributeValue}'"
-		
-		# else consider an enum value which value is int
-		return int(attributeValue)
+	def validateAttributeValue(self, attributeValue: Any) -> Any:
+		return Utils.validateAttributeValue(attributeValue)
 
 	
 	def _getInsertGeneralQuery(self) -> str:
