@@ -6,7 +6,7 @@ from threading import Lock
 import psycopg2
 
 from ..etc.Types import ResourceTypes, Result, ResponseStatusCode, JSON
-from ..etc import DateUtils
+from ..etc import DateUtils, Utils
 from ..services.Configuration import Configuration
 from ..services import CSE
 from ..resources.Resource import Resource
@@ -36,23 +36,17 @@ class PostgresBinding():
             self._connection.close()
             L.isInfo and L.log('Postgres connection closed')
         
+    ##############################################################################
     #
-    #	Resources
+    #	Resource and specific resource type table Implementation
     #
 
     def insertResource(self, resource: Resource) -> bool:
         query = resource.getInsertQuery()
-        L.isDebug and L.logDebug(f'Query: {query}')
-        success = True
-        with self._lockExecution:
-            try:
-                with self._connection, self._connection.cursor() as cursor:
-                    cursor.execute(query)
-            except Exception as e:
-                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
-                success = False
-
-        return success
+        if query == None:
+            return False
+        
+        return self._execManipulationQuery(query)
     
 
     def upsertResource(self, resource: Resource) -> None:
@@ -69,32 +63,12 @@ class PostgresBinding():
         if query == None:
             return False
         
-        L.isDebug and L.logDebug(f'Query: {query}')
-        success = True
-        with self._lockExecution:
-            try:
-                with self._connection, self._connection.cursor() as cursor:
-                    cursor.execute(query)
-            except Exception as e:
-                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
-                success = False
-
-        return success
+        return self._execManipulationQuery(query)
 
 
     def deleteResource(self, resource:Resource) -> bool:
-        query = f"DELETE FROM resources WHERE ri = '{resource.ri}';"
-        L.isDebug and L.logDebug(f'Query: {query}')
-        success = True
-        with self._lockExecution:
-            try:
-                with self._connection, self._connection.cursor() as cursor:
-                    cursor.execute(query)
-            except Exception as e:
-                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
-                success = False
-        
-        return success
+        query = f"DELETE FROM public.resources WHERE ri = '{resource.ri}';"
+        return self._execManipulationQuery(query)
     
 
     def searchResources(self, ri:Optional[str] = None, 
@@ -288,7 +262,49 @@ class PostgresBinding():
             del result[i]["__srn__"]
         
         return result
+    
+    
+    ##############################################################################
+    #
+    #	Batch Notification Table Implementation
+    #
+    
+    def addBatchNotification(self, ri:str, nu:str, notificationRequest:JSON) -> bool:
+        query = "INSERT INTO public.batch_notif(ri, nu, tstamp, request) VALUES ({}, {}, {}, {});"
+        query = query.format(
+            Utils.validateAttributeValue(ri),
+            Utils.validateAttributeValue(nu),
+            Utils.validateAttributeValue(DateUtils.getResourceDate()),
+            Utils.validateAttributeValue(notificationRequest)
+        )
+        return self._execManipulationQuery(query)
 
+
+    def countBatchNotifications(self, ri:str, nu:str) -> int:
+        query = "SELECT COUNT(*) FROM public.batch_notif;"
+        result = self._execQuery(query)
+        return result[0] if len(result) > 0 else 0
+    
+
+    def getBatchNotifications(self, ri:str, nu:str) -> list[JSON]:
+        query = f"""
+                SELECT row_to_json(results) FROM (
+                    SELECT ri, nu, DATE_PART('epoch', tstamp) AS tstamp, request FROM batch_notif WHERE ri='{ri}' AND nu='{nu}'
+                ) as results;
+                """
+        # query = f"SELECT row_to_json(batch_notif) FROM batch_notif WHERE ri='{ri}' AND nu='{nu}';"
+        return self._execQuery(query)
+    
+
+    def removeBatchNotifications(self, ri:str, nu:str) -> bool:
+        query = f"DELETE FROM public.batch_notif WHERE ri='{ri}' AND nu='{nu}';"
+        return self._execManipulationQuery(query)
+
+    
+    ##############################################################################
+    #
+    #	Private Implementation
+    #
 
     def _selectByRI(self, ri: str, ty: Optional[int] = None) -> list[dict]:
         """Expected only return 1 value, because resource identifier is unique
@@ -528,8 +544,21 @@ class PostgresBinding():
                 # L.isDebug and L.logDebug("Rollback connection")
             
         return result
-            
     
+    
+    def _execManipulationQuery(self, query: str) -> bool:
+        L.isDebug and L.logDebug(f'Query: {query}')
+        success = True
+        with self._lockExecution:
+            try:
+                with self._connection, self._connection.cursor() as cursor:
+                    cursor.execute(query)
+            except Exception as e:
+                L.isInfo and L.logErr('Failed exec query: {}'.format(str(e)))
+                success = False
+
+        return success
+            
 
 if __name__ == "__main__":
     binding = PostgresBinding()

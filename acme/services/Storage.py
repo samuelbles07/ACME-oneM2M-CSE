@@ -123,8 +123,8 @@ class Storage(object):
 			# self.structuredIdentifier('_')
 			# dbFile = 'subscription'
 			# self.getSubscription('_')
-			dbFile = 'batch notification'
-			self.countBatchNotifications('_', '_')
+			# dbFile = 'batch notification'
+			# self.countBatchNotifications('_', '_')
 			dbFile = 'statistics'
 			self.getStatistics()
 		except Exception as e:
@@ -431,6 +431,7 @@ class Storage(object):
 	##
 
 	def getSubscription(self, ri:str) -> Optional[JSON]:
+		# TODO: This here can retrieve only specific attribute as legacy does
 		# L.logDebug(f'Retrieving subscription: {ri}')
 		result = self._postgres.searchResources(ri = ri, ty = int(ResourceTypes.SUB))
 		if len(result) > 0:
@@ -497,19 +498,19 @@ class Storage(object):
 	##
 
 	def addBatchNotification(self, ri:str, nu:str, request:JSON) -> bool:
-		return self.db.addBatchNotification(ri, nu, request)
+		return self._postgres.addBatchNotification(ri, nu, request)
 
 
 	def countBatchNotifications(self, ri:str, nu:str) -> int:
-		return self.db.countBatchNotifications(ri, nu)
+		return self._postgres.countBatchNotifications(ri, nu)
 
 
 	def getBatchNotifications(self, ri:str, nu:str) -> list[Document]:
-		return self.db.getBatchNotifications(ri, nu)
+		return self._postgres.getBatchNotifications(ri, nu)
 
 
 	def removeBatchNotifications(self, ri:str, nu:str) -> bool:
-		return self.db.removeBatchNotifications(ri, nu)
+		return self._postgres.removeBatchNotifications(ri, nu)
 
 
 
@@ -554,14 +555,14 @@ class TinyDBBinding(object):
 		# self.lockResources				= Lock()
 		# self.lockIdentifiers			= Lock()
 		# self.lockSubscriptions			= Lock()
-		self.lockBatchNotifications		= Lock()
+		# self.lockBatchNotifications		= Lock()
 		self.lockStatistics 			= Lock()
 
 		# file names
 		# self.fileResources				= f'{self.path}/resources{postfix}.json'
 		# self.fileIdentifiers			= f'{self.path}/identifiers{postfix}.json'
 		# self.fileSubscriptions			= f'{self.path}/subscriptions{postfix}.json'
-		self.fileBatchNotifications		= f'{self.path}/batchNotifications{postfix}.json'
+		# self.fileBatchNotifications		= f'{self.path}/batchNotifications{postfix}.json'
 		self.fileStatistics				= f'{self.path}/statistics{postfix}.json'
 
 		# All databases/tables will use the smart query cache
@@ -570,14 +571,14 @@ class TinyDBBinding(object):
 			# self.dbResources 			= TinyDB(storage = MemoryStorage) # TODO: Change this to postgres binding, implemented function in postgres binding, just call to the function directly
 			# self.dbIdentifiers 			= TinyDB(storage = MemoryStorage)
 			# self.dbSubscriptions 		= TinyDB(storage = MemoryStorage)
-			self.dbBatchNotifications	= TinyDB(storage = MemoryStorage)
+			# self.dbBatchNotifications	= TinyDB(storage = MemoryStorage)
 			self.dbStatistics			= TinyDB(storage = MemoryStorage)
 		else:
 			L.isInfo and L.log('DB in file system')
 			# self.dbResources 			= TinyDB(self.fileResources)
 			# self.dbIdentifiers 			= TinyDB(self.fileIdentifiers)
 			# self.dbSubscriptions 		= TinyDB(self.fileSubscriptions)
-			self.dbBatchNotifications 	= TinyDB(self.fileBatchNotifications)
+			# self.dbBatchNotifications 	= TinyDB(self.fileBatchNotifications)
 			self.dbStatistics 			= TinyDB(self.fileStatistics)
 
 
@@ -596,14 +597,14 @@ class TinyDBBinding(object):
 		# self.tabResources 				= self.dbResources.table('resources', cache_size = self.cacheSize)
 		# self.tabIdentifiers 			= self.dbIdentifiers.table('identifiers', cache_size = self.cacheSize)
 		# self.tabSubscriptions 			= self.dbSubscriptions.table('subsriptions', cache_size = self.cacheSize)
-		self.tabBatchNotifications 		= self.dbBatchNotifications.table('batchNotifications', cache_size = self.cacheSize)
+		# self.tabBatchNotifications 		= self.dbBatchNotifications.table('batchNotifications', cache_size = self.cacheSize)
 		self.tabStatistics 				= self.dbStatistics.table('statistics', cache_size = self.cacheSize)
 
 		# Create the Queries
 		# self.resourceQuery 				= Query()
 		# self.identifierQuery 			= Query()
 		# self.subscriptionQuery			= Query()
-		self.batchNotificationQuery 	= Query()
+		# self.batchNotificationQuery 	= Query()
 
 
 	def closeDB(self) -> None:
@@ -615,8 +616,8 @@ class TinyDBBinding(object):
 		# 	self.dbIdentifiers.close()
 		# with self.lockSubscriptions:
 		# 	self.dbSubscriptions.close()
-		with self.lockBatchNotifications:
-			self.dbBatchNotifications.close()
+		# with self.lockBatchNotifications:
+		# 	self.dbBatchNotifications.close()
 		with self.lockStatistics:
 			self.dbStatistics.close()
 
@@ -626,7 +627,7 @@ class TinyDBBinding(object):
 		# self.tabResources.truncate()
 		# self.tabIdentifiers.truncate()
 		# self.tabSubscriptions.truncate()
-		self.tabBatchNotifications.truncate()
+		# self.tabBatchNotifications.truncate()
 		self.tabStatistics.truncate()
 	
 
@@ -634,7 +635,7 @@ class TinyDBBinding(object):
 		# shutil.copy2(self.fileResources, dir)
 		# shutil.copy2(self.fileIdentifiers, dir)
 		# shutil.copy2(self.fileSubscriptions, dir)
-		shutil.copy2(self.fileBatchNotifications, dir)
+		# shutil.copy2(self.fileBatchNotifications, dir)
 		shutil.copy2(self.fileStatistics, dir)
 		return True
 
@@ -826,29 +827,29 @@ class TinyDBBinding(object):
 	#	BatchNotifications
 	#
 
-	def addBatchNotification(self, ri:str, nu:str, notificationRequest:JSON) -> bool:
-		with self.lockBatchNotifications:
-			return self.tabBatchNotifications.insert(
-					{	'ri' 		: ri,
-						'nu' 		: nu,
-						'tstamp'	: DateUtils.utcTime(),
-						'request'	: notificationRequest
-					}) is not None
+	# def addBatchNotification(self, ri:str, nu:str, notificationRequest:JSON) -> bool:
+	# 	with self.lockBatchNotifications:
+	# 		return self.tabBatchNotifications.insert(
+	# 				{	'ri' 		: ri,
+	# 					'nu' 		: nu,
+	# 					'tstamp'	: DateUtils.utcTime(),
+	# 					'request'	: notificationRequest
+	# 				}) is not None
 
 
-	def countBatchNotifications(self, ri:str, nu:str) -> int:
-		with self.lockBatchNotifications:
-			return self.tabBatchNotifications.count((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))
+	# def countBatchNotifications(self, ri:str, nu:str) -> int:
+	# 	with self.lockBatchNotifications:
+	# 		return self.tabBatchNotifications.count((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))
 
 
-	def getBatchNotifications(self, ri:str, nu:str) -> list[Document]:
-		with self.lockBatchNotifications:
-			return self.tabBatchNotifications.search((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))
+	# def getBatchNotifications(self, ri:str, nu:str) -> list[Document]:
+	# 	with self.lockBatchNotifications:
+	# 		return self.tabBatchNotifications.search((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))
 
 
-	def removeBatchNotifications(self, ri:str, nu:str) -> bool:
-		with self.lockBatchNotifications:
-			return len(self.tabBatchNotifications.remove((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))) > 0
+	# def removeBatchNotifications(self, ri:str, nu:str) -> bool:
+	# 	with self.lockBatchNotifications:
+	# 		return len(self.tabBatchNotifications.remove((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))) > 0
 
 
 	#
