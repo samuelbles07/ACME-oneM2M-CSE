@@ -317,7 +317,21 @@ class Tables:
                     CONSTRAINT fk_resources FOREIGN KEY(resource_index) REFERENCES resources(index) ON DELETE CASCADE
                 );
                 """
-
+                
+    @staticmethod
+    def queryBatchNotif() -> str:
+        return """
+                CREATE TABLE IF NOT EXISTS batch_notif
+                (
+                    index SERIAL PRIMARY KEY,
+                    ri VARCHAR(255) NOT NULL,
+                    nu VARCHAR(255),
+                    tstamp TIMESTAMP,
+                    request JSONB,
+                    CONSTRAINT fk_ri FOREIGN KEY(ri) REFERENCES resources(ri) ON DELETE CASCADE
+                );
+                """
+                
 
 if __name__ == "__main__":
 
@@ -363,8 +377,11 @@ if __name__ == "__main__":
     cur.execute(Tables.queryDVI())
     conn.commit()
 
-    # cur.execute(Tables.queryREQ())
-    # conn.commit()
+    cur.execute(Tables.queryREQ())
+    conn.commit()
+    
+    cur.execute(Tables.queryBatchNotif())
+    conn.commit()
 
     # cur.execute("SELECT row_to_json(resources) FROM resources WHERE ty = 1;")
     # rows = cur.fetchall()
