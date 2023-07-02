@@ -157,7 +157,7 @@ class Tables:
                     poa JSONB,
                     cb VARCHAR(255) NOT NULL,
                     csi VARCHAR(255) UNIQUE NOT NULL,
-                    mei VARCHAR(255) NOT NULL,
+                    mei VARCHAR(255),
                     tri VARCHAR(255),
                     rr BOOLEAN NOT NULL,
                     nl VARCHAR(255),
