@@ -80,3 +80,43 @@ class DVI(MgmtObj):
 		self.setAttribute('man', defaultManufacturer, overwrite = False)
 		self.setAttribute('dlb', defaultDeviceLabel, overwrite = False)
 
+
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.dvi(resource_index, mgd, obis, obps, dc, mgs, cmlk, dlb, man, mfdl, mfd, mod, smod, dty, dvnm, fwv, swv, hwv, osv, cnty, loc, syst, spur, purl, ptl)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['mgd']),
+			self.validateAttributeValue(self['obis']),
+			self.validateAttributeValue(self['obps']),
+			self.validateAttributeValue(self['dc']),
+			self.validateAttributeValue(self['mgs']),
+			self.validateAttributeValue(self['cmlk']),
+			self.validateAttributeValue(self['dlb']),
+			self.validateAttributeValue(self['man']),
+			self.validateAttributeValue(self['mfdl']),
+			self.validateAttributeValue(self['mfd']),
+			self.validateAttributeValue(self['mod']),
+			self.validateAttributeValue(self['smod']),
+			self.validateAttributeValue(self['dty']),
+			self.validateAttributeValue(self['dvnm']),
+			self.validateAttributeValue(self['fwv']),
+			self.validateAttributeValue(self['swv']),
+			self.validateAttributeValue(self['hwv']),
+			self.validateAttributeValue(self['osv']),
+			self.validateAttributeValue(self['cnty']),
+			self.validateAttributeValue(self['loc']),
+			self.validateAttributeValue(self['syst']),
+			self.validateAttributeValue(self['spur']),
+			self.validateAttributeValue(self['purl']),
+			self.validateAttributeValue(self['ptl'])
+		)

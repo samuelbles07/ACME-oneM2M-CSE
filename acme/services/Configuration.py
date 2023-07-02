@@ -33,7 +33,6 @@ class Configuration(object):
 	_argsConfigfile:str 			= None
 	_argsLoglevel:str				= None
 	_argsDBReset:bool				= None
-	_argsDBStorageMode:str			= None
 	_argsHeadless:bool				= None
 	_argsHttpAddress:str			= None
 	_argsHttpPort:int				= None
@@ -62,7 +61,6 @@ class Configuration(object):
 		Configuration._argsConfigfile			= args.configfile if args and 'configfile' in args else C.defaultUserConfigFile
 		Configuration._argsLoglevel				= args.loglevel if args and 'loglevel' in args else None
 		Configuration._argsDBReset				= args.dbreset if args and 'dbreset' in args else False
-		Configuration._argsDBStorageMode		= args.dbstoragemode if args and 'dbstoragemode' in args else None
 		Configuration._argsHeadless				= args.headless if args and 'headless' in args else False
 		Configuration._argsHttpAddress			= args.httpaddress if args and 'httpaddress' in args else None
 		Configuration._argsHttpPort				= args.httpport if args and 'httpport' in args else None
@@ -210,10 +208,11 @@ class Configuration(object):
 				#	Database
 				#
 
-				'db.path'								: config.get('database', 'path', 									fallback = './data'),
-				'db.inMemory'							: config.getboolean('database', 'inMemory', 						fallback = False),
-				'db.cacheSize'							: config.getint('database', 'cacheSize', 							fallback = 0),		# Default: no caching
 				'db.resetOnStartup' 					: config.getboolean('database', 'resetOnStartup',					fallback = False),
+				'db.hostname'							: config.get('database', 'hostname',								fallback = "localhost"),				
+				'db.port'								: config.getint('database', 'port',									fallback = 5432),				
+				'db.username'							: config.get('database', 'username'									),				
+				'db.password'							: config.get('database', 'password'									),				
 
 				#
 				#	Logging
@@ -414,7 +413,6 @@ class Configuration(object):
 
 
 		if Configuration._argsDBReset is True:					Configuration._configuration['db.resetOnStartup'] = True									# Override DB reset from command line
-		if Configuration._argsDBStorageMode is not None:		Configuration._configuration['db.inMemory'] = Configuration._argsDBStorageMode == 'memory'					# Override DB storage mode from command line
 		if Configuration._argsHttpAddress is not None:			Configuration._configuration['http.address'] = Configuration._argsHttpAddress								# Override server http address
 		if Configuration._argsHttpPort is not None:				Configuration._configuration['http.port'] = Configuration._argsHttpPort									# Override server http port
 		if Configuration._argsImportDirectory is not None:		Configuration._configuration['cse.resourcesPath'] = Configuration._argsImportDirectory						# Override import directory from command line

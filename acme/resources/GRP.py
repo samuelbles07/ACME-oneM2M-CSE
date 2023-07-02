@@ -100,3 +100,29 @@ class GRP(AnnounceableResource):
 		return CSE.group.validateGroup(self, originator)
 
 
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.grp(resource_index, mt, spty, cnm, mnm, mid, macp, mtv, csy, gn, ssi, nar)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['mt']),
+			self.validateAttributeValue(self['spty']),
+			self.validateAttributeValue(self['cnm']),
+			self.validateAttributeValue(self['mnm']),
+			self.validateAttributeValue(self['mid']),
+			self.validateAttributeValue(self['macp']),
+			self.validateAttributeValue(self['mtv']),
+			self.validateAttributeValue(self['csy']),
+			self.validateAttributeValue(self['gn']),
+			self.validateAttributeValue(self['ssi']),
+			self.validateAttributeValue(self['nar'])
+		)

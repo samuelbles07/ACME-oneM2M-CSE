@@ -144,6 +144,7 @@ class SUB(Resource):
 														isAnnounced = self.isAnnounced())).status:
 			return res
 
+		oldSub = CSE.storage.retrieveResource(ri = self.ri).resource
 
 		# Handle update notificationStatsEnable attribute, but only if present in the resource.
 		# This is important bc it can be set to True, False, or Null.
@@ -175,6 +176,8 @@ class SUB(Resource):
 			if not (parentResource := self.retrieveParentResource()):
 				return Result(status = False, rsc = ResponseStatusCode.internalServerError, dbg = L.logErr(f'cannot retrieve parent resource'))
 			if  not (res := self._checkAllowedCHTY(parentResource, chty)).status:
+				L.isDebug and L.logDebug("Updated CHTY attribute is not allowed, rollback from DB")
+				CSE.storage.updateResource(oldSub)
 				return res
 
 		return CSE.notification.updateSubscription(self, previousNus, originator)
@@ -207,7 +210,7 @@ class SUB(Resource):
 			# Only one of each blocking UPDATE or RETRIEVE etc must exist for this resource
 			# This works here in validate bc it is only allowed in CREATE/activate, and this resource has 
 			# not been written to DB yet.
-			if CSE.notification.getSubscriptionsByNetChty(parentResource.ri, net = net):
+			if CSE.notification.getSubscriptionsByNetChty(parentResource.ri, net = net, exc = self.ri):
 				return Result.errorResult(dbg = L.logDebug(f'A subscription with blockingRetrieve/blockingUpdate/blockingRetrieveDirectChild already exsists for this resource'))
 
 			# Only one NU is allowed for blocking UPDATE or RETRIEVE
@@ -336,3 +339,38 @@ class SUB(Resource):
 	
 			"""
 		return len(set(dct.keys()).difference(self._allowedENCAttributes)) > 0
+
+
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.sub(resource_index, enc, exc, nu, gpi, nfu, bn, rl, psn, pn, nsp, ln, nct, nec, su, acrs, nse, nsi, ma)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['enc']),
+			self.validateAttributeValue(self['exc']),
+			self.validateAttributeValue(self['nu']),
+			self.validateAttributeValue(self['gpi']),
+			self.validateAttributeValue(self['nfu']),
+			self.validateAttributeValue(self['bn']),
+			self.validateAttributeValue(self['rl']),
+			self.validateAttributeValue(self['psn']),
+			self.validateAttributeValue(self['pn']),
+			self.validateAttributeValue(self['nsp']),
+			self.validateAttributeValue(self['ln']),
+			self.validateAttributeValue(self['nct']),
+			self.validateAttributeValue(self['nec']),
+			self.validateAttributeValue(self['su']),
+			self.validateAttributeValue(self['acrs']),
+			self.validateAttributeValue(self['nse']),
+			self.validateAttributeValue(self['nsi']),
+			self.validateAttributeValue(self['ma'])
+		)

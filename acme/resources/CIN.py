@@ -50,7 +50,6 @@ class CIN(AnnounceableResource):
 			'conr': None,
 			'con': None,
 			'or': None,
-			'conr': None,
 			'dcnt': None,
 			'dgt': None
 	}
@@ -131,3 +130,26 @@ class CIN(AnnounceableResource):
 		
 		return Result.successResult()
 
+
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.cin(resource_index, cnf, cs, conr, ontologyref, con, dcnt, dgt)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['cnf']),
+			self.validateAttributeValue(self['cs']),
+			self.validateAttributeValue(self['conr']),
+			self.validateAttributeValue(self['or']),
+			self.validateAttributeValue(self['con']),
+			self.validateAttributeValue(self['dcnt']),
+			self.validateAttributeValue(self['dgt'])
+		)

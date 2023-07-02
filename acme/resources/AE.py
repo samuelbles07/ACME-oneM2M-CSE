@@ -191,4 +191,31 @@ class AE(AnnounceableResource):
 					node['hael'] = hael
 				node.dbUpdate()
 
+	
+	#	Databases Related
+	
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.ae(resource_index, apn, api, aei, mei, tri, trn, poa, regs, trps, ontologyref, rr, nl, csz, scp, srv)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['apn']),
+			self.validateAttributeValue(self['api']),
+			self.validateAttributeValue(self['aei']),
+			self.validateAttributeValue(self['mei']),
+			self.validateAttributeValue(self['tri']),
+			self.validateAttributeValue(self['trn']),
+			self.validateAttributeValue(self['poa']),
+			self.validateAttributeValue(self['regs']),
+			self.validateAttributeValue(self['trps']),
+			self.validateAttributeValue(self['or']),
+			self.validateAttributeValue(self['rr']),
+			self.validateAttributeValue(self['nl']),
+			self.validateAttributeValue(self['csz']),
+			self.validateAttributeValue(self['scp']),
+			self.validateAttributeValue(self['srv'])
+		)
+
 

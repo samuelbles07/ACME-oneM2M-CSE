@@ -212,7 +212,7 @@ class RegistrationManager(object):
 			Return
 				True if the originator is registered with the CSE.
 		"""
-		return len(CSE.storage.searchByFragment({'aei' : originator})) > 0
+		return CSE.storage.retrieveResource(aei = originator).status
 
 	#########################################################################
 
@@ -283,15 +283,17 @@ class RegistrationManager(object):
 
 	def handleCSEBaseAnncRegistration(self, cbA:Resource, originator:str) -> Result:
 		L.isDebug and L.logDebug(f'Registering CSEBaseAnnc. csi: {cbA.csi}')
+		#! CSEBase announce not supported
+		return Result.errorResult()
 
-		# Check whether the same CSEBase has already registered (-> only once)
-		if (lnk := cbA.lnk):
-			if len(list := CSE.storage.searchByFragment({'lnk': lnk})) > 0:
-				return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logDebug(f'CSEBaseAnnc with lnk: {lnk} already exists'))
+		# # Check whether the same CSEBase has already registered (-> only once)
+		# if (lnk := cbA.lnk):
+		# 	if len(list := CSE.storage.searchByFragment({'lnk': lnk})) > 0:
+		# 		return Result.errorResult(rsc = ResponseStatusCode.conflict, dbg = L.logDebug(f'CSEBaseAnnc with lnk: {lnk} already exists'))
 
-		# Assign a rn
-		cbA.setResourceName(Utils.uniqueRN(f'{cbA.tpe}_{Utils.getIdFromOriginator(originator)}'))
-		return Result.successResult()
+		# # Assign a rn
+		# cbA.setResourceName(Utils.uniqueRN(f'{cbA.tpe}_{Utils.getIdFromOriginator(originator)}'))
+		# return Result.successResult()
 
 
 	#########################################################################
@@ -345,11 +347,10 @@ class RegistrationManager(object):
 		if self.expWorker:
 			self.expWorker.restart(self.checkExpirationsInterval)
 
-
 	def expirationDBMonitor(self) -> bool:
-		# L.isDebug and L.logDebug('Looking for expired resources')
-		now = DateUtils.getResourceDate()
-		resources = CSE.storage.searchByFilter(lambda r: (et := r.get('et'))  and et < now)
+		L.isDebug and L.logDebug('Looking for expired resources')
+		# now = DateUtils.getResourceDate()
+		resources = CSE.storage.retrieveExpiredResource()
 		for resource in resources:
 			# try to retrieve the resource first bc it might have been deleted as a child resource
 			# of an expired resource

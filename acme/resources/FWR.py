@@ -74,3 +74,30 @@ class FWR(MgmtObj):
 		self.setAttribute('uds', defaultUDS, overwrite = False)
 		self.setAttribute('ud', False, overwrite = False)
 
+
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.fwr(resource_index, mgd, obis, obps, dc, mgs, cmlk, vr, fwn, url, ud, uds)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['mgd']),
+			self.validateAttributeValue(self['obis']),
+			self.validateAttributeValue(self['obps']),
+			self.validateAttributeValue(self['dc']),
+			self.validateAttributeValue(self['mgs']),
+			self.validateAttributeValue(self['cmlk']),
+			self.validateAttributeValue(self['vr']),
+			self.validateAttributeValue(self['fwn']),
+			self.validateAttributeValue(self['url']),
+			self.validateAttributeValue(self['ud']),
+			self.validateAttributeValue(self['uds'])
+		)

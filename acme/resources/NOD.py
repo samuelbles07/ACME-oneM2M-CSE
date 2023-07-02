@@ -84,4 +84,28 @@ class NOD(AnnounceableResource):
 			if (nl := aeResource.nl) and isinstance(nl, str) and ri == nl:
 				aeResource.delAttribute('nl')
 				aeResource.dbUpdate()
+    
+    
+    #########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.nod(resource_index, ni, hcl, hael, hsl, mgca, rms, nid)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['ni']),
+			self.validateAttributeValue(self['hcl']),
+			self.validateAttributeValue(self['hael']),
+			self.validateAttributeValue(self['hsl']),
+			self.validateAttributeValue(self['mgca']),
+			self.validateAttributeValue(self['rms']),
+			self.validateAttributeValue(self['nid'])
+		)
 

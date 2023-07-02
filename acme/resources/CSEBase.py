@@ -136,4 +136,29 @@ class CSEBase(AnnounceableResource):
 		return Result.successResult()
 
 
+	#########################################################################
+	#
+	#	Resource specific
+	#
+
+	#	Database Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.cb(resource_index, cst, csi, poa, nl, ncp, csz, srv, srt, rr)
+					SELECT rt.index, {}, {}, {}, {}, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(int(self['cst'])), # Case enum to int
+			self.validateAttributeValue(self['csi']),
+			self.validateAttributeValue(self['poa']),
+			self.validateAttributeValue(self['nl']),
+			self.validateAttributeValue(self['ncp']),
+			self.validateAttributeValue(self['csz']),
+			self.validateAttributeValue(self['srv']),
+			self.validateAttributeValue(self['srt']),
+			self.validateAttributeValue(self['rr'])
+		)
+
 		

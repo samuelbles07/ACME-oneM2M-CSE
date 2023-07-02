@@ -15,6 +15,7 @@ from __future__ import annotations
 from typing import Any, Callable, Tuple, cast, Optional
 import random, string, sys, re, threading, socket
 import traceback
+import json
 from distutils.util import strtobool
 
 
@@ -62,7 +63,7 @@ def isUniqueRI(ri:str) -> bool:
 		Return:
 			Boolean indicating the result of the test
 	"""
-	return not CSE.storage.identifier(ri)
+	return not CSE.storage.hasResource(ri)
 
 
 def uniqueRN(prefix:str) -> str:
@@ -719,7 +720,10 @@ def findXPath(dct:JSON, key:str, default:Optional[Any] = None) -> Optional[Any]:
 		elif pathElement not in data:	# if key not in dict
 			return default
 		else:
-			data = data[pathElement]	# found data for the next level down
+			tmp = data
+			if isinstance(data, str):
+				tmp = json.loads(data)
+			data = tmp[pathElement]	# found data for the next level down
 	return data
 
 
@@ -819,20 +823,21 @@ def removeNoneValuesFromDict(jsn:JSON, allowedNull:Optional[list[str]] = []) -> 
 
 
 
-def resourceDiff(old:JSON, new:JSON, modifiers:Optional[JSON] = None) -> JSON:
+def resourceDiff(old:JSON, new:JSON, modifiers:Optional[JSON] = None, ignoreInternal = True) -> JSON:
 	"""	Compare an old and a new resource. A comparison happens for keywords and values.
-		Attributes which names start and end with "__" (ie internal attributes) are ignored.
+		Attributes which names start and end with "__" (ie internal attributes) are ignored if ignoreInternal set to True.
 
 		Args:
 			old: Old resource dictionary to compare.
 			new: New resource dictionary to compare.
 			modifiers: A dictionary. If this dictionary is given then it contains the changes that let from old to new. This is used to determine if attributes were just updated with the same values.
+			ignoreInternal: Ignore internal attribute from difference check
 		Return:	
 			Return a dictionary of identified changes.
 	"""
 	res = {}
 	for k, v in new.items():
-		if k.startswith('__'):	# ignore all internal attributes
+		if ignoreInternal and k.startswith('__'):	# ignore all internal attributes if ignoreInternal set to True
 			continue
 		if not k in old:		# Key not in old
 			res[k] = v
@@ -991,6 +996,33 @@ def strToBool(value:str) -> bool:
 			The boolean value.
 	"""
 	return bool(strtobool(str(value)))
+
+
+def validateAttributeValue(attributeValue: Any) -> Any:
+	""" Validate attribute value to follow SQL query format
+
+	Args:
+		attributeValue (Any): Value that will be validate
+
+	Returns:
+		str: SQL query format based on the type of attribute value. Can be Bool, Int or String.
+	"""
+	
+	# If attribute has no value, the return NULL in string
+	if attributeValue == None:
+		return "NULL"
+
+	# Do not at single quotes if attribute value is Int
+	if isinstance(attributeValue, bool) or isinstance(attributeValue, float):
+		return attributeValue
+	elif isinstance(attributeValue, list) or isinstance(attributeValue, dict):
+		return "'{}'".format( json.dumps(attributeValue) ) # stringify it first to support quote on string
+	elif isinstance(attributeValue, str):
+		# Add single quotes to attribute value
+		return f"'{attributeValue}'"
+	
+	# else consider an enum value which value is int
+	return int(attributeValue)
 
 ##############################################################################
 #

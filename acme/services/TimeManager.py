@@ -88,7 +88,9 @@ class TimeManager(object):
 
 
 	def _getAllPeriodicTimeSyncBeacons(self) -> list[TSB]:
-		return cast(List[TSB], CSE.storage.searchByFragment( { 'ty': ResourceTypes.TSB, 'bcnc': BeaconCriteria.PERIODIC} ))
+		#! Not supported
+		return []
+		# return cast(List[TSB], CSE.storage.searchByFragment( { 'ty': ResourceTypes.TSB, 'bcnc': BeaconCriteria.PERIODIC} ))
 
 
 	def addTimeSyncBeacon(self, tsb:TSB) -> Result:

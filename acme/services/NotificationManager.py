@@ -118,8 +118,9 @@ class NotificationManager(object):
 		L.isDebug and L.logDebug('Adding subscription')
 		if not (res := self._verifyNusInSubscription(subscription, originator = originator)).status:	# verification requests happen here
 			return res
-		return Result.successResult() if CSE.storage.addSubscription(subscription) \
-									  else Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'cannot add subscription to database')
+		return Result.successResult()
+		# return Result.successResult() if CSE.storage.addSubscription(subscription) \
+		# 							  else Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'cannot add subscription to database')
 
 
 	def removeSubscription(self, subscription:SUB|CRS, originator:str) -> Result:
@@ -146,9 +147,10 @@ class NotificationManager(object):
 		if (acrs := subscription.acrs):
 			self.sendDeletionNotification([ nu for nu in acrs ], subscription.ri)
 		
-		# Finally remove subscriptions from storage
-		return Result.successResult() if CSE.storage.removeSubscription(subscription) \
-									  else Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'cannot remove subscription from database')
+		return Result.successResult()
+		# # Finally remove subscriptions from storage
+		# return Result.successResult() if CSE.storage.removeSubscription(subscription) \
+		# 							  else Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'cannot remove subscription from database')
 
 
 	def updateSubscription(self, subscription:SUB, previousNus:list[str], originator:str) -> Result:
@@ -168,13 +170,15 @@ class NotificationManager(object):
 		L.isDebug and L.logDebug('Updating subscription')
 		if not (res := self._verifyNusInSubscription(subscription, previousNus, originator = originator)).status:	# verification requests happen here
 			return res
-		return Result.successResult() if CSE.storage.updateSubscription(subscription) \
-									  else Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'cannot update subscription in database')
+		return Result.successResult()
+		# return Result.successResult() if CSE.storage.updateSubscription(subscription) \
+		# 							  else Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'cannot update subscription in database')
 
 
 	def getSubscriptionsByNetChty(self, ri:str, 
 										net:Optional[list[NotificationEventType]] = None, 
-										chty:Optional[ResourceTypes] = None) -> JSONLIST:
+										chty:Optional[ResourceTypes] = None,
+          								exc: Optional[str] = None) -> JSONLIST:
 		"""	Returns a (possible empty) list of subscriptions for a resource. 
 		
 			An optional filter can be used 	to return only those subscriptions with a specific enc/net.
@@ -182,6 +186,7 @@ class NotificationManager(object):
 			Args:
 				net: optional filter for enc/net
 				chty: optional single child resource typ
+				exc: optional *sub* ri to pass when checking chty and return value result
 
 			Return:
 				List of storage subscription documents, NOT Subscription resources.
@@ -190,6 +195,10 @@ class NotificationManager(object):
 			return []
 		result:JSONLIST = []
 		for each in subs:
+			if exc and exc == each["ri"]: # Because using 1 storage instead of 2 like legacy for subscription, need to do exception for provided sub ri
+				continue
+			if not each['net']:
+				continue
 			if net and any(x in net for x in each['net']):
 				result.append(each)
 		
@@ -258,7 +267,7 @@ class NotificationManager(object):
 				ri == childResource.ri and \
 				reason in [ NotificationEventType.createDirectChild, NotificationEventType.deleteDirectChild ]:
 					continue
-			if reason not in sub['net']:	# check whether reason is actually included in the subscription
+			if sub['net'] and (reason not in sub['net']):	# check whether reason is actually included in the subscription
 				continue
 			if reason in [ NotificationEventType.createDirectChild, NotificationEventType.deleteDirectChild ]:	# reasons for child resources
 				chty = sub['chty']
@@ -1102,7 +1111,7 @@ class NotificationManager(object):
 			else:
 				subResource.setAttribute('exc', exc)		# Update the exc attribute
 				subResource.dbUpdate()						# Update the real subscription
-				CSE.storage.updateSubscription(subResource)	# Also update the internal sub
+				# CSE.storage.updateSubscription(subResource)	# Also update the internal sub
 		return result								
 
 

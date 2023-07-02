@@ -1430,21 +1430,15 @@ class RequestManager(object):
 		"""
 		if not originator:
 			return []
-		# First check whether there is an AE with that originator
-		if (l := len(aes := CSE.storage.searchByFragment({ 'aei' : originator }))) > 0:
-			if l > 1:
-				L.logErr(f'More then one AE with the same aei: {originator}')
-				return []
-			csz = aes[0].csz
-		# Else try whether there is a CSE or CSR
-		elif (l := len(cses := CSE.storage.searchByFragment({ 'csi' : Utils.getIdFromOriginator(originator) }))) > 0:
-			if l > 1:
-				L.logErr(f'More then one CSE with the same csi: {originator}')
-				return []
-			csz = cses[0].csz
-		# Else just an empty list
-		else:
-			return []
+
+		csz = None
+		if aes := CSE.storage.retrieveResource(aei = originator):
+			if aes.status:
+				csz = aes.resource.csz
+		elif cses := CSE.storage.retrieveResource(csi = Utils.getIdFromOriginator(originator)):
+			if cses.status:
+				csz = cses.resource.csz
+    
 		# Convert the poa to a list of ContentSerializationTypes
 		if not csz:
 			return []

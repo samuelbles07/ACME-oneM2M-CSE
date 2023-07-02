@@ -229,6 +229,7 @@ def resourceFromDict(resDict:Optional[JSON] = {},
 		factory = ResourceTypes(resDict['mgd']).announced().resourceFactory()
 	else:
 		factory = typ.resourceFactory()
+		
 	if factory:
 		return Result(status = True, rsc = ResponseStatusCode.OK, resource = factory(resDict, tpe, pi, create))
 

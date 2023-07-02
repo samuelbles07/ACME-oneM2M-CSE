@@ -95,15 +95,16 @@ class ACP(AnnounceableResource):
 	def deactivate(self, originator:str) -> None:
 		# Inherited
 		super().deactivate(originator)
+  
+		# NOTE: [IMPROVEMENT] update doesn't have to create resource then update. Which in this case only need ri and acpi, the only update acpi
 
 		# Remove own resourceID from all acpi
-		L.isDebug and L.logDebug(f'Removing acp.ri: {self.ri} from assigned resource acpi')
-		for r in CSE.storage.searchByFilter(lambda r: (acpi := r.get('acpi')) is not None and self.ri in acpi):	# search for presence in acpi, not perfect match
+		L.isDebug and L.logDebug(f'Removing acp.ri: {self.ri} from assigned resource acpi')    
+		for r in CSE.storage.retrieveResourceBy(acpi = self.ri):	# search for presence in acpi, not perfect match
 			acpi = r.acpi
-			if self.ri in acpi:
-				acpi.remove(self.ri)
-				r['acpi'] = acpi if len(acpi) > 0 else None	# Remove acpi from resource if empty
-				r.dbUpdate()
+			acpi.remove(self.ri)
+			r['acpi'] = acpi if len(acpi) > 0 else None	# Remove acpi from resource if empty
+			r.dbUpdate()
 
 
 	def validateAnnouncedDict(self, dct:JSON) -> JSON:
@@ -198,6 +199,7 @@ class ACP(AnnounceableResource):
 					try:
 						if not (grp := CSE.dispatcher.retrieveResource(acr).resource):
 							L.isDebug and L.logDebug(f'Group resource not found: {acr}')
+							# TODO: If not found, delete groupId from acp acor
 							continue
 
 						if originator in grp.mid:
@@ -235,3 +237,19 @@ class ACP(AnnounceableResource):
 				return True
 		return False
 
+
+	#	Databases Related
+
+	def getInsertQuery(self) -> Optional[str]:
+		query = """
+					INSERT INTO public.acp(resource_index, pv, pvs, adri, apri, airi)
+					SELECT rt.index, {}, {}, {}, {}, {} FROM resource_table rt;
+				"""
+
+		return self._getInsertGeneralQuery() + query.format(
+			self.validateAttributeValue(self['pv']),
+			self.validateAttributeValue(self['pvs']),
+			self.validateAttributeValue(self['adri']),
+			self.validateAttributeValue(self['apri']),
+			self.validateAttributeValue(self['airi'])
+		)
