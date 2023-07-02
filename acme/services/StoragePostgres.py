@@ -102,23 +102,16 @@ class PostgresBinding():
     
     def retrieveResourceByAttribute(self, acpi: Optional[str] = None, 
                                     mid: Optional[str] = None,
-                                    ty: Optional[int] = None, 
-                                    filterResult: Optional[list] = None) -> list[JSON]:
-        """ Retrieve list of resource in dict based on attribute value
-
-        Args:
-            acpi (Optional[str], optional): resources to search that have ACP ri in acpi attribute value. Defaults to None.
-            ty (Optional[int], optional): resources to search that match ty or to help query when need to retrieve specific resource attribute. Defaults to None.
-            filterResult (Optional[list], optional): list of attribute needs to retrieve. Defaults to None.
-
-        Returns:
-            Optional[list[JSON]]: list of resource in specific filter or all attributes
-        """
+                                    ty: Optional[int] = None,
+                                    mcsi: Optional[str] = None, 
+                                    filter:Optional[Callable[[JSON], bool]] = None) -> list[JSON]:
         result = []
         if acpi:
             result = self._selectByACPI(acpi)
         elif mid:
             result = self._selectByMID(mid)
+        if mcsi:
+            result = self._selectByMCSI(mcsi, filter)
             
         return result
     
@@ -526,6 +519,46 @@ class PostgresBinding():
                 ) as results;
                 """
         return self._execQuery(query)
+    
+    
+    def _selectByMCSI(self, mcsi: str, filter:Optional[Callable[[JSON], bool]] = None) -> list[dict]:
+        # Retrieve only needed attribute that match mcsi condition
+        query = f"""
+                SELECT row_to_json(results) FROM (
+                    SELECT ri, at, ty, __announcedto__ FROM resources, jsonb_array_elements_text(at)
+                    WHERE VALUE ILIKE '{mcsi}%'
+                ) as results;
+                """
+        filterResult = self._execQuery(query)
+        
+        # Sanity check result
+        if len(filterResult) == 0:
+            return []
+        
+        result = []
+        
+        # If filter not provided, then retrieve all attributes for each resource found before
+        if not filter:
+            for res in filterResult:
+                if (l := len(val := self._selectByRI(res["ri"], res["ty"]))) > 0:
+                    result.append(val[0])
+                else:
+                    L.logWarn(f'Cannot retrieve {res["ri"]} for {res["ty"]}')
+                    
+            return result
+                    
+        # Do filter
+        for res in filterResult:
+            if not filter(res):
+                continue
+            
+            # If filter return True, then retrieve all attributes for 'that' resource
+            if (l := len(val := self._selectByRI(res["ri"], res["ty"]))) > 0:
+                result.append(val[0])
+            else:
+                L.logWarn(f'Cannot retrieve {res["ri"]} for {res["ty"]}')
+        
+        return result
     
 
     def _execQuery(self, query: str) -> list:

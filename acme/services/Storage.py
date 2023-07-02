@@ -269,10 +269,22 @@ class Storage(object):
 
 	def retrieveResourceBy(self, acpi: Optional[str] = None,
 							mid: Optional[str] = None,
-							ty: Optional[int] = None, 
-							filterResult: Optional[list] = None) -> list[Resource]:
-     
-		return  [ res	for each in self._postgres.retrieveResourceByAttribute(acpi = acpi, mid = mid, ty = ty, filterResult = filterResult)
+							ty: Optional[int] = None,
+							mcsi: Optional[str] = None,
+							filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
+		""" Retrieve list of resource based on attribute value 
+
+		Args:
+			acpi (Optional[str], optional): If provided, search resource that use ACP ri in it's resource acpi attribute. Defaults to None.
+			mid (Optional[str], optional): If provided, Retrieve every group resource that contains ri in the mid attribute. Defaults to None.
+			ty (Optional[int], optional): Haven't used. Defaults to None.
+			mcsi (Optional[str], optional): If provided, Retrieve every resource that match mcsi at it's 'at' attribute, and use filter param if provided. Defaults to None.
+			filter (Optional[Callable[[JSON], bool]], optional): If provided, mcsi need to provided too. Defaults to None.
+
+		Returns:
+			list[Resource]: list of resource that match attribute value
+		"""
+		return  [ res	for each in self._postgres.retrieveResourceByAttribute(acpi = acpi, mid = mid, ty = ty, mcsi = mcsi, filter = filter)
 						if (res := Factory.resourceFromDict(each).resource)
 				]
 

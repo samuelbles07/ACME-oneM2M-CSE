@@ -602,14 +602,13 @@ class AnnouncementManager(object):
 				Return:
 					Boolean indicating the search filter result.
 			"""
-			if (at := r.get('at')) and len(list(filter(lambda x: x.startswith(mcsi), at))) > 0:	# check whether any entry in 'at' startswith mcsi
-				if ato := r.get(Resource._announcedTo):
-					for i in ato:
-						if csi == i[0]:	# 0=remote csi,
-							return isAnnounced
-					return not isAnnounced
+			if ato := r.get(Resource._announcedTo):
+				for i in ato:
+					if csi == i[0]:	# 0=remote csi,
+						return isAnnounced
+				return not isAnnounced
 			return False
 
-		return cast(List[AnnounceableResource], CSE.storage.searchByFilter(_announcedFilter))
+		return cast(List[AnnounceableResource], CSE.storage.retrieveResourceBy(mcsi = mcsi, filter = _announcedFilter))
 
 
