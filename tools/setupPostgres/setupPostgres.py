@@ -6,8 +6,15 @@ Installation
 - Install psycopg2 using pip
 
 ref: https://www.psycopg.org/docs/install.html#psycopg-vs-psycopg-binary
+
+Create database on postgres server with the same name as DB_NAME
 """
 
+DB_NAME = "acme-cse"
+DB_PORT = 5432
+DB_HOSTNAME = "localhost"
+DB_USERNAME = "postgres"
+DB_PASSWORD = "musang"
 
 class Tables:
     @staticmethod
@@ -336,7 +343,7 @@ class Tables:
 if __name__ == "__main__":
 
     # Connect to your postgres DB
-    conn = psycopg2.connect(database="acme-cse-test", host="localhost", user="postgres", password="musang")
+    conn = psycopg2.connect(database=DB_NAME, port = DB_PORT, host=DB_HOSTNAME, user=DB_USERNAME, password=DB_PASSWORD)
     # Open a cursor to perform database operations
     cur = conn.cursor()
 
@@ -382,15 +389,6 @@ if __name__ == "__main__":
     
     cur.execute(Tables.queryBatchNotif())
     conn.commit()
-
-    # cur.execute("SELECT row_to_json(resources) FROM resources WHERE ty = 1;")
-    # rows = cur.fetchall()
-    # result = []
-    # for row in rows:
-    #     result.append(row[0])
-
-    # print(result[0])
-    # print(result[1])
 
     # Close cursor and connection to databse
     cur.close()

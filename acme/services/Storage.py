@@ -44,39 +44,13 @@ class Storage(object):
 	def __init__(self) -> None:
 		"""	Initialization of the storage manager.
 		"""
-
-		# create data directory
-		self.inMemory 	= Configuration.get('db.inMemory')
-		self.dbPath 	= Configuration.get('db.path')
-		self.dbReset 	= Configuration.get('db.resetOnStartup') 
-
-		if not self.inMemory:
-			if self.dbPath:
-				L.isInfo and L.log('Using data directory: ' + self.dbPath)
-				os.makedirs(self.dbPath, exist_ok = True)
-			else:
-				L.logErr('db.path not set')
-				raise RuntimeError('db.path not set')
-
-		# create DB object and open DB
-		self.db = TinyDBBinding(self.dbPath, postfix = f'-{CSE.cseCsi[1:]}') # add CSE CSI as postfix
-
 		# Reset dbs?
-		if self.dbReset:
+		if Configuration.get('db.resetOnStartup'):
 			self._backupDB()	# In this case do a backup *before* startup.
 			self.purge()
-		
-		# Check validity
-		if not self.dbReset and not self._validateDB():
-			raise RuntimeError('DB error. Please check or remove database files.')
-		
-		# Make backup *after* validation, only when *not* reset
-		if not self.inMemory and not self.dbReset and not self._backupDB():
-			raise RuntimeError('DB Error')
 
-		# NOTE: Initiate postgres binding here
+		# Initiate postgres binding
 		self._postgres = PostgresBinding()
-
 		L.isInfo and L.log('Storage initialized')
 
 
@@ -86,10 +60,8 @@ class Storage(object):
 			Return:
 				Always True.
 		"""
-		self.db.closeDB()
-		# NOTE: Close postgres connnection
+		# Close postgres connnection
 		self._postgres.closeConnection()
-		self.db = None
 		L.isInfo and L.log('Storage shut down')
 		return True
 
@@ -97,40 +69,8 @@ class Storage(object):
 	def purge(self) -> None:
 		"""	Reset and clear the databases.
 		"""
-		try:
-			self.db.purgeDB()
-		except Exception as e:
-			L.logErr(f'Exception during purge: {e}', exc=e)
-			quit()
-
-
-	def _validateDB(self) -> bool:
-		"""	Trying to validate the database files.
-		
-			This is only a simple test. It performs a couple of read
-			operations on the available database files.
-
-			Return:
-				Boolean indicating the validity of the databases.
-
-		"""
-		L.isDebug and L.logDebug('Validating database files')
-		dbFile = ''
-		try:
-			# dbFile = 'resources'
-			# self.hasResource('_')
-			# dbFile = 'identifiers'
-			# self.structuredIdentifier('_')
-			# dbFile = 'subscription'
-			# self.getSubscription('_')
-			# dbFile = 'batch notification'
-			# self.countBatchNotifications('_', '_')
-			dbFile = 'statistics'
-			self.getStatistics()
-		except Exception as e:
-			L.logErr(f'Error validating data files. Error in {dbFile} database.', exc = e)
-			return False
-		return True
+		# TODO: Do purge DB here
+		pass
 	
 
 	def _backupDB(self) -> bool:
@@ -139,10 +79,8 @@ class Storage(object):
 			Return:
 				Boolean indicating the success of the backup operation.
 		"""
-		dir = f'{self.dbPath}/backup'
-		L.isDebug and L.logDebug(f'Creating DB backup in directory: {dir}')
-		os.makedirs(dir, exist_ok = True)
-		return self.db.backupDB(dir)
+		# TODO: Do backup here. Is it needed?
+		return True
 		
 
 	#########################################################################
@@ -161,8 +99,6 @@ class Storage(object):
 			Return:
 				Result object indicating success or error status.
 		"""
-		# TODO: Get resource insert sql query here
-
 		ri  = resource.ri
 		srn = resource.getSrn()
 		# L.logDebug(f'Adding resource (ty: {resource.ty}, ri: {resource.ri}, rn: {resource.rn}, srn: {srn}')
@@ -238,7 +174,6 @@ class Storage(object):
 		return Result.errorResult(rsc = ResponseStatusCode.internalServerError, dbg = 'database inconsistency')
 
 
-	# NOTE: Ini hanya dipakai oleh CIN untuk ngelihat attribute 'disableRetrieval' dari parent CIN, which is Container
 	def retrieveResourceRaw(self, ri:str) -> Result:
 		"""	Retrieve a resource as a raw dictionary.
 
@@ -409,33 +344,6 @@ class Storage(object):
 		"""
 		return self._postgres.searchIdentifiers(srn = srn)
 
-	# TODO
-	# def searchByFragment(self, dct:dict, filter:Optional[Callable[[JSON], bool]] = None) -> list[Resource]:
-	# 	""" Search and return all resources that match the given fragment dictionary/document.
-
-	# 		Args:
-	# 			dct: A fragment dictionary to use as a filter for the search.
-	# 			filter: An optional callback to provide additional filter functionality.
-	# 		Return:
-	# 			List of `Resource` objects.
-	# 	"""
-	# 	return	[ res	for each in self.db.searchByFragment(dct) 
-	# 					if (not filter or filter(each)) and (res := Factory.resourceFromDict(each).resource) # either there is no filter or the filter is called to test the resource
-	# 			] 
-
-
-	# def searchByFilter(self, filter:Callable[[JSON], bool]) -> list[Resource]:
-	# 	"""	Return a list of resources that match the given filter, or an empty list.
-
-	# 		Args:
-	# 			filter: A callback to provide filter functionality.
-	# 		Return:
-	# 			List of `Resource` objects.
-	# 	"""
-	# 	return	[ res	for each in self.db.discoverResourcesByFilter(filter)
-	# 					if (res := Factory.resourceFromDict(each).resource)
-	# 			]
-
 
 	#########################################################################
 	##
@@ -489,21 +397,6 @@ class Storage(object):
 		return result
 
 
-	# def addSubscription(self, subscription:Resource) -> bool:
-	# 	# L.logDebug(f'Adding subscription: {ri}')
-	# 	return self.db.upsertSubscription(subscription)
-
-
-	# def removeSubscription(self, subscription:Resource) -> bool:
-	# 	# L.logDebug(f'Removing subscription: {subscription.ri}')
-	# 	return self.db.removeSubscription(subscription)
-
-
-	# def updateSubscription(self, subscription:Resource) -> bool:
-	# 	# L.logDebug(f'Updating subscription: {ri}')
-	# 	return self.db.upsertSubscription(subscription)
-
-
 	#########################################################################
 	##
 	##	BatchNotifications
@@ -534,358 +427,21 @@ class Storage(object):
 	def getStatistics(self) -> JSON:
 		"""	Retrieve the statistics data from the DB.
 		"""
-		return self.db.searchStatistics()
+		return {}
+		# return self.db.searchStatistics()
 
 
 	def updateStatistics(self, stats:JSON) -> bool:
 		"""	Update the statistics DB with new data.
 		"""
-		return self.db.upsertStatistics(stats)
-
-
-	def purgeStatistics(self) -> None:
-		"""	Purge the statistics DB.
-		"""
-		self.db.purgeStatistics()
-
-
-#########################################################################
-#
-#	DB class that implements the TinyDB binding
-#
-#	This class may be moved later to an own module.
-
-
-class TinyDBBinding(object):
-
-	def __init__(self, path:str = None, postfix:str = '') -> None:
-		self.path = path
-		self.cacheSize = Configuration.get('db.cacheSize')
-		L.isInfo and L.log(f'Cache Size: {self.cacheSize:d}')
-
-		# create transaction locks
-		# self.lockResources				= Lock()
-		# self.lockIdentifiers			= Lock()
-		# self.lockSubscriptions			= Lock()
-		# self.lockBatchNotifications		= Lock()
-		self.lockStatistics 			= Lock()
-
-		# file names
-		# self.fileResources				= f'{self.path}/resources{postfix}.json'
-		# self.fileIdentifiers			= f'{self.path}/identifiers{postfix}.json'
-		# self.fileSubscriptions			= f'{self.path}/subscriptions{postfix}.json'
-		# self.fileBatchNotifications		= f'{self.path}/batchNotifications{postfix}.json'
-		self.fileStatistics				= f'{self.path}/statistics{postfix}.json'
-
-		# All databases/tables will use the smart query cache
-		if Configuration.get('db.inMemory'):
-			L.isInfo and L.log('DB in memory')
-			# self.dbResources 			= TinyDB(storage = MemoryStorage) # TODO: Change this to postgres binding, implemented function in postgres binding, just call to the function directly
-			# self.dbIdentifiers 			= TinyDB(storage = MemoryStorage)
-			# self.dbSubscriptions 		= TinyDB(storage = MemoryStorage)
-			# self.dbBatchNotifications	= TinyDB(storage = MemoryStorage)
-			self.dbStatistics			= TinyDB(storage = MemoryStorage)
-		else:
-			L.isInfo and L.log('DB in file system')
-			# self.dbResources 			= TinyDB(self.fileResources)
-			# self.dbIdentifiers 			= TinyDB(self.fileIdentifiers)
-			# self.dbSubscriptions 		= TinyDB(self.fileSubscriptions)
-			# self.dbBatchNotifications 	= TinyDB(self.fileBatchNotifications)
-			self.dbStatistics 			= TinyDB(self.fileStatistics)
-
-
-			# EXPERIMENTAL Using BetterJSONStorage - improved disk read/write. so far, mixed results. Good with large installations.
-			# from ..helpers.BetterJSONStorage import BetterJSONStorage
-			# from pathlib import Path
-
-			# self.dbResources 			= TinyDB(Path(self.fileResources), access_mode="r+", storage = BetterJSONStorage, write_delay = 1.0)
-			# self.dbIdentifiers 			= TinyDB(Path(self.fileIdentifiers), access_mode="r+", storage = BetterJSONStorage, write_delay = 1.0)
-			# self.dbSubscriptions 		= TinyDB(Path(self.fileSubscriptions), access_mode="r+", storage = BetterJSONStorage, write_delay = 1.0)
-			# self.dbBatchNotifications 	= TinyDB(Path(self.fileBatchNotifications), access_mode="r+", storage = BetterJSONStorage, write_delay = 1.0)
-			# self.dbStatistics 			= TinyDB(Path(self.fileStatistics), access_mode="r+", storage = BetterJSONStorage, write_delay = 1.0)
-		
-		
-		# Open/Create tables
-		# self.tabResources 				= self.dbResources.table('resources', cache_size = self.cacheSize)
-		# self.tabIdentifiers 			= self.dbIdentifiers.table('identifiers', cache_size = self.cacheSize)
-		# self.tabSubscriptions 			= self.dbSubscriptions.table('subsriptions', cache_size = self.cacheSize)
-		# self.tabBatchNotifications 		= self.dbBatchNotifications.table('batchNotifications', cache_size = self.cacheSize)
-		self.tabStatistics 				= self.dbStatistics.table('statistics', cache_size = self.cacheSize)
-
-		# Create the Queries
-		# self.resourceQuery 				= Query()
-		# self.identifierQuery 			= Query()
-		# self.subscriptionQuery			= Query()
-		# self.batchNotificationQuery 	= Query()
-
-
-	def closeDB(self) -> None:
-		L.isInfo and L.log('Closing DBs')
-  
-		# with self.lockResources:
-		# 	self.dbResources.close()
-		# with self.lockIdentifiers:
-		# 	self.dbIdentifiers.close()
-		# with self.lockSubscriptions:
-		# 	self.dbSubscriptions.close()
-		# with self.lockBatchNotifications:
-		# 	self.dbBatchNotifications.close()
-		with self.lockStatistics:
-			self.dbStatistics.close()
-
-
-	def purgeDB(self) -> None:
-		L.isInfo and L.log('Purging DBs')
-		# self.tabResources.truncate()
-		# self.tabIdentifiers.truncate()
-		# self.tabSubscriptions.truncate()
-		# self.tabBatchNotifications.truncate()
-		self.tabStatistics.truncate()
-	
-
-	def backupDB(self, dir:str) -> bool:
-		# shutil.copy2(self.fileResources, dir)
-		# shutil.copy2(self.fileIdentifiers, dir)
-		# shutil.copy2(self.fileSubscriptions, dir)
-		# shutil.copy2(self.fileBatchNotifications, dir)
-		shutil.copy2(self.fileStatistics, dir)
 		return True
-
-
-	#
-	#	Resources
-	#
-
-
-	# def insertResource(self, resource: Resource) -> None:
-	# 	with self.lockResources:
-	# 		self.tabResources.insert(resource.dict)
-	
-
-	# def upsertResource(self, resource: Resource) -> None:
-	# 	#L.logDebug(resource)
-	# 	with self.lockResources:
-	# 		# Update existing or insert new when overwriting
-	# 		self.tabResources.upsert(resource.dict, self.resourceQuery.ri == resource.ri)
-	
-
-	# def updateResource(self, resource: Resource) -> Resource:
-	# 	#L.logDebug(resource)
-	# 	with self.lockResources:
-	# 		ri = resource.ri
-	# 		self.tabResources.update(resource.dict, self.resourceQuery.ri == ri)
-	# 		# remove nullified fields from db and resource
-	# 		for k in list(resource.dict):
-	# 			if resource.dict[k] is None:	# only remove the real None attributes, not those with 0
-	# 				self.tabResources.update(delete(k), self.resourceQuery.ri == ri)	# type: ignore [no-untyped-call]
-	# 				del resource.dict[k]
-	# 		return resource
-
-
-	# def deleteResource(self, resource:Resource) -> None:
-	# 	with self.lockResources:
-	# 		self.tabResources.remove(self.resourceQuery.ri == resource.ri)	
-	
-
-	# def searchResources(self, ri:Optional[str] = None, 
-	# 						  csi:Optional[str] = None, 
-	# 						  srn:Optional[str] = None, 
-	# 						  pi:Optional[str] = None, 
-	# 						  ty:Optional[int] = None, 
-	# 						  aei:Optional[str] = None) -> list[Document]:
-	# 	if not srn:
-	# 		with self.lockResources:
-	# 			if ri:
-	# 				return self.tabResources.search(self.resourceQuery.ri == ri)
-	# 			elif csi:
-	# 				return self.tabResources.search(self.resourceQuery.csi == csi)	
-	# 			elif pi:
-	# 				if ty is not None:	# ty is an int
-	# 					return self.tabResources.search((self.resourceQuery.pi == pi) & (self.resourceQuery.ty == ty))
-	# 				return self.tabResources.search(self.resourceQuery.pi == pi)
-	# 			elif ty is not None:	# ty is an int
-	# 				return self.tabResources.search(self.resourceQuery.ty == ty)	
-	# 			elif aei:
-	# 				return self.tabResources.search(self.resourceQuery.aei == aei)	
-		
-	# 	else:
-	# 		# for SRN find the ri first and then try again recursively (outside the lock!!)
-	# 		if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
-	# 			return self.searchResources(ri=identifiers[0]['ri'])
-
-	# 	return []
-
-
-	# def discoverResourcesByFilter(self, func:Callable[[JSON], bool]) -> list[Document]:
-	# 	with self.lockResources:
-	# 		return self.tabResources.search(func)	# type: ignore [arg-type]
-
-
-	# def hasResource(self, ri:Optional[str] = None, 
-	# 					  csi:Optional[str] = None, 
-	# 					  srn:Optional[str] = None,
-	# 					  ty:Optional[int] = None) -> bool:
-	# 	if not srn:
-	# 		with self.lockResources:
-	# 			if ri:
-	# 				return self.tabResources.contains(self.resourceQuery.ri == ri)	
-	# 			elif csi :
-	# 				return self.tabResources.contains(self.resourceQuery.csi == csi)
-	# 			elif ty is not None:	# ty is an int
-	# 				return self.tabResources.contains(self.resourceQuery.ty == ty)
-	# 	else:
-	# 		# find the ri first and then try again recursively
-	# 		if len((identifiers := self.searchIdentifiers(srn=srn))) == 1:
-	# 			return self.hasResource(ri = identifiers[0]['ri'])
-	# 	return False
-
-
-	# def countResources(self) -> int:
-	# 	with self.lockResources:
-	# 		return len(self.tabResources)
-
-
-	# def searchByFragment(self, dct:dict) -> list[Document]:
-	# 	""" Search and return all resources that match the given dictionary/document. """
-	# 	with self.lockResources:
-	# 		return self.tabResources.search(self.resourceQuery.fragment(dct))
-
-	#
-	#	Identifiers
-	#
-
-
-	# def insertIdentifier(self, resource:Resource, ri:str, srn:str) -> None:
-	# 	# L.isDebug and L.logDebug({'ri' : ri, 'rn' : resource.rn, 'srn' : srn, 'ty' : resource.ty})	
-	# 	with self.lockIdentifiers:
-	# 		self.tabIdentifiers.upsert(
-	# 			{	'ri' : ri, 
-	# 				'rn' : resource.rn, 
-	# 				'srn' : srn,
-	# 				'ty' : resource.ty 
-	# 			}, 
-	# 			self.identifierQuery.ri == ri)
-
-
-	# def deleteIdentifier(self, resource:Resource) -> None:
-	# 	with self.lockIdentifiers:
-	# 		self.tabIdentifiers.remove(self.identifierQuery.ri == resource.ri)
-
-
-	# def searchIdentifiers(self, ri:Optional[str] = None, 
-	# 							srn:Optional[str] = None) -> list[Document]:
-	# 	"""	Search for an resource ID OR for a structured name in the identifiers DB.
-
-	# 		Either *ri* or *srn* shall be given. If both are given then *srn*
-	# 		is taken.
-		
-	# 		Args:
-	# 			ri: Resource ID to search for.
-	# 			srn: Structured path to search for.
-	# 		Return:
-	# 			A list of found identifier documents (see `insertIdentifier`), or an empty list if not found.
-	# 	 """
-	# 	with self.lockIdentifiers:
-	# 		if srn:
-	# 			return self.tabIdentifiers.search(self.identifierQuery.srn == srn)
-	# 		elif ri:
-	# 			return self.tabIdentifiers.search(self.identifierQuery.ri == ri)
-	# 		return []
-
-
-	#
-	#	Subscriptions
-	#
-
-
-	# def searchSubscriptions(self, ri:Optional[str] = None, 
-	# 							  pi:Optional[str] = None) -> Optional[list[Document]]:
-	# 	with self.lockSubscriptions:
-	# 		if ri:
-	# 			return self.tabSubscriptions.search(self.subscriptionQuery.ri == ri)
-	# 		if pi:
-	# 			return self.tabSubscriptions.search(self.subscriptionQuery.pi == pi)
-	# 		return None
-
-
-	# def upsertSubscription(self, subscription:Resource) -> bool:
-	# 	with self.lockSubscriptions:
-	# 		ri = subscription.ri
-	# 		return self.tabSubscriptions.upsert(
-	# 				{	'ri'  		: ri, 
-	# 					'pi'  		: subscription.pi,
-	# 					'nct' 		: subscription.nct,
-	# 					'net' 		: subscription['enc/net'],	# TODO perhaps store enc as a whole?
-	# 					'atr' 		: subscription['enc/atr'],
-	# 					'chty'		: subscription['enc/chty'],
-	# 					'exc' 		: subscription.exc,
-	# 					'ln'  		: subscription.ln,
-	# 					'nus' 		: subscription.nu,
-	# 					'bn'  		: subscription.bn,
-	# 					'cr'  		: subscription.cr,
-	# 					'originator': subscription.getOriginator(),
-	# 					'ma' 		: subscription.ma, # EXPERIMENTAL ma = maxAge
-	# 					'nse' 		: subscription.nse
-	# 				}, 
-	# 				self.subscriptionQuery.ri == ri) is not None
-
-
-	# def removeSubscription(self, subscription:Resource) -> bool:
-	# 	with self.lockSubscriptions:
-	# 		return len(self.tabSubscriptions.remove(self.subscriptionQuery.ri == subscription.ri)) > 0
-
-
-	#
-	#	BatchNotifications
-	#
-
-	# def addBatchNotification(self, ri:str, nu:str, notificationRequest:JSON) -> bool:
-	# 	with self.lockBatchNotifications:
-	# 		return self.tabBatchNotifications.insert(
-	# 				{	'ri' 		: ri,
-	# 					'nu' 		: nu,
-	# 					'tstamp'	: DateUtils.utcTime(),
-	# 					'request'	: notificationRequest
-	# 				}) is not None
-
-
-	# def countBatchNotifications(self, ri:str, nu:str) -> int:
-	# 	with self.lockBatchNotifications:
-	# 		return self.tabBatchNotifications.count((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))
-
-
-	# def getBatchNotifications(self, ri:str, nu:str) -> list[Document]:
-	# 	with self.lockBatchNotifications:
-	# 		return self.tabBatchNotifications.search((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))
-
-
-	# def removeBatchNotifications(self, ri:str, nu:str) -> bool:
-	# 	with self.lockBatchNotifications:
-	# 		return len(self.tabBatchNotifications.remove((self.batchNotificationQuery.ri == ri) & (self.batchNotificationQuery.nu == nu))) > 0
-
-
-	#
-	#	Statistics
-	#
-
-	def searchStatistics(self) -> JSON:
-		with self.lockStatistics:
-			stats = self.tabStatistics.get(doc_id = 1)
-			# return stats if stats is not None and len(stats) > 0 else None
-			return stats if stats else None
-
-
-	def upsertStatistics(self, stats:JSON) -> bool:
-		with self.lockStatistics:
-			if len(self.tabStatistics) > 0:
-				return self.tabStatistics.update(stats, doc_ids = [1]) is not None
-			else:
-				return self.tabStatistics.insert(stats) is not None
+		# return self.db.upsertStatistics(stats)
 
 
 	def purgeStatistics(self) -> None:
 		"""	Purge the statistics DB.
 		"""
-		with self.lockStatistics:
-			self.tabStatistics.truncate()
+		pass
+		# self.db.purgeStatistics()
+
 

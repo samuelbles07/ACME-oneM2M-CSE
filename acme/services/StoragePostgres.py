@@ -19,10 +19,12 @@ from ..services.Logging import Logging as L
 class PostgresBinding():
     def __init__(self) -> None:
         L.isInfo and L.log("Initialize postgres binding!")
-
-        # TODO: Add exception when error connect
-        # Connect to postgres DB
-        self._connection = psycopg2.connect(database="acme-cse-test", host="localhost", user="postgres", password="musang")
+        # Connect to postgres DB, will crash if failed connect
+        self._connection = psycopg2.connect(database="acme-cse", 
+                                            host=Configuration.get("db.hostname"), 
+                                            port= Configuration.get("db.port"), 
+                                            user=Configuration.get("db.username"), 
+                                            password=Configuration.get("db.password"))
         # Open a cursor to perform database operations
         # self._cursor = self._connection.cursor()
         L.isInfo and L.log('Postgres connection initialized')
@@ -522,6 +524,15 @@ class PostgresBinding():
     
     
     def _selectByMCSI(self, mcsi: str, filter:Optional[Callable[[JSON], bool]] = None) -> list[dict]:
+        """ Retrieve every resource that match mcsi at it's 'at' attribute, and use filter param if provided
+
+        Args:
+            mcsi (str): csi pattern that want to look for in 'at' attribute
+            filter (Optional[Callable[[JSON], bool]], optional): Other filter. Defaults to None.
+
+        Returns:
+            list[dict]: List of resource in dict that in filter criteria
+        """        
         # Retrieve only needed attribute that match mcsi condition
         query = f"""
                 SELECT row_to_json(results) FROM (
