@@ -72,6 +72,8 @@ BSD 3-Clause License for the CSE and its native components and modules. Please s
 ## Optimization
 
 - [ ] When create new resource, it is always insert all the request before do validation which not make sense. It can be optimize using cache system where request data saved in cache and when resource is validate, then insert to DB
+- [ ] Return only non null field. But when initiate resource. Handle retrieving expected data if key not found, then set it to None
 - [ ] Very often get resource and only use a couple of the attribute? (But there's a validation when initiate Resource object. Maybe just don't validate when in that case?)
 - [ ] in StoragePostgres, there's a loop query call. Use pgsql instead.
+- [ ] In getSubscription, only retrieve specific attribute just as legacy does
 
