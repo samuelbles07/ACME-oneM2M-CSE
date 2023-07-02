@@ -34,7 +34,7 @@ class Tables:
                     cstn VARCHAR(255),
                     __rtype__ VARCHAR NOT NULL,
                     __originator__ VARCHAR,
-                    __srn__ VARCHAR,
+                    __srn__ VARCHAR UNIQUE NOT NULL,
                     __announcedto__ JSONB,
                     __rvi__ VARCHAR(255),
                     __node__ VARCHAR(255),
